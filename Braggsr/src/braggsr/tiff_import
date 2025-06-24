@@ -1,0 +1,13 @@
+import os 
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
+import scipy
+import pandas as pd
+import tifffile 
+
+data_path = '/SNS/VENUS/IPTS-35945/shared/images_normalized/Gd Mask Normalization' 
+assert os.path.exists(data_path)
+
+image = imread(data_path+'/normalized_sample_7998_obs_8015')
+image.shape

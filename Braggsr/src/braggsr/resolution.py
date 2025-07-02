@@ -9,7 +9,6 @@ import tifffile
 from tifffile.tifffile import imread
 import imageio
 import cv2 as cv
-import re
 import lmfit.models
 from lmfit.models import GaussianModel, LorentzianModel, VoigtModel
 
@@ -32,12 +31,12 @@ gray_8bit =cv.convertScaleAbs(gray)
 
 #establish source [src] file path, run through imread, plot
 #gray_8bit = cv.imread(data_path+'/normalized_sample_7998_obs_8015/integrated.tif', cv.IMREAD_UNCHANGED)
-plt.imshow(gray_8bit)
-plt.colorbar()
+'''plt.imshow(gray_8bit)
+plt.colorbar()'''
 
 #Replots in true B/W -- notice introduction of artifacts
 bw = cv.adaptiveThreshold(gray_8bit, 255, cv.ADAPTIVE_THRESH_MEAN_C, cv.THRESH_BINARY, 15, -2)
-plt.imshow(bw, cmap='gray')
+#plt.imshow(bw, cmap='gray')
 
 #creates two separate images at highest contrast to separate horizontal and vertical features
 horizontal = np.copy(bw)
@@ -57,7 +56,7 @@ smooth = np.copy(horizontal)
 smooth = cv.blur(smooth, (2,2))
 (rows,cols) = np.where(H_edges != 0)
 horizontal [rows,cols] = smooth[rows, cols]
-plt.imshow(horizontal)
+#plt.imshow(horizontal)
 
 #vertical processing -- separates and saves vertical features
 rows = vertical.shape[0]
@@ -74,7 +73,7 @@ smooth = np.copy(vertical)
 smooth = cv.blur(smooth, (2,2))
 (rows,cols) = np.where(V_edges != 0)
 vertical [rows,cols] = smooth[rows, cols]
-plt.imshow(vertical)
+#plt.imshow(vertical)
 
 #Recombines the horizontal and vertical images into a single processed and edge-optimized image using 
 #OpenCV "addWeighted" function
@@ -83,15 +82,15 @@ print (vertical.shape)
 alpha = .5
 beta = 1-alpha
 combined_image = cv.addWeighted(horizontal, alpha, vertical, beta, 0.0)
-plt.imshow (combined_image)
-plt.colorbar ()
+#plt.imshow (combined_image)
+#plt.colorbar ()
 
 #Defines the ROI and processes the image to detect and identify the edges
 x1,y1,width1,height1 =  110,100,130,215
 roi_1=combined_image[y1:y1+height1,x1:x1+width1]
 edges=cv.Canny(roi_1,0,150)
-plt.imshow(edges)
-print (edges.shape)
+#plt.imshow(edges)
+#print (edges.shape)
 
 #export the edge locations
 edge_locations = np.column_stack(np.where(edges != 0))
@@ -110,7 +109,7 @@ for (x1,y1) in edge_locations:
     box=(left_edge,y1, right_edge, y1)
     boxes.append(box)
 boxes = np.array(boxes)
-print(boxes)
+#print(boxes)
 np.savetxt('7998_edge_locations_boxes', boxes, fmt='%d', header = "Row, Column")
 
 #Saves and iterates all saved ROIs through the resolution script
@@ -187,12 +186,12 @@ if fwhm_values:
     average_fwhm = sum(fwhm_values)/len (fwhm_values)
 spatial_resolution = .055 *average_fwhm #mm
 print ("The sample size of the calculation was",len(results_dict)/4,",all with R^2 value in excess of .9")
-print ("The average resolution across the ROI is" ,(average_fwhm) ,"pixels, or",(spatial_resolution),"mm.")
+print (f"The average resolution across the ROI is {average_fwhm:.8f} pixels, or {spatial_resolution:.8f} mm.")
 
 
 
-"""def calc_resolution(pix_pos: np.ndarray, intensity: np.ndarray) -> float: 
-    '''Calculating the resolution of a TIFF radiograph by pulling in the edge space function from the integrated .TIFF gray scale value
+'''def calc_resolution(pix_pos: np.ndarray, intensity: np.ndarray) -> float: 
+    Calculating the resolution of a TIFF radiograph by pulling in the edge space function from the integrated .TIFF gray scale value
 
     Parameter
     ---------
@@ -202,6 +201,6 @@ print ("The average resolution across the ROI is" ,(average_fwhm) ,"pixels, or",
     Returns
     -------
     Resolution in units of milimeters
-    '''
+    
     print("To be implemented")
     return 0.0'''

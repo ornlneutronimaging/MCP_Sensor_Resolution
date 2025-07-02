@@ -1,3 +1,17 @@
+'''def calc_resolution(pix_pos: np.ndarray, intensity: np.ndarray) -> float: 
+    Calculating the resolution of a TIF neutron radiograph by pulling in the edge space function from the integrated .TIFF gray scale value
+
+    Parameter
+    ---------
+    pix_pos: pixel location in .TIFF as a 1D NumPy array
+    intensity: gray scale value at the associated pixel location 
+
+    Returns
+    -------
+    Resolution in units of milimeters
+    
+    print("To be implemented")
+    return 0.0'''
 import os 
 import sys
 import numpy as np
@@ -182,25 +196,13 @@ for box in boxes:
 
 #print(results_dict)
 fwhm_values = list(results_dict.values())
+std_dev_FWHM = np.std(fwhm_values)
 if fwhm_values:
     average_fwhm = sum(fwhm_values)/len (fwhm_values)
 spatial_resolution = .055 *average_fwhm #mm
-print ("The sample size of the calculation was",len(results_dict)/4,",all with R^2 value in excess of .9")
-print (f"The average resolution across the ROI is {average_fwhm:.8f} pixels, or {spatial_resolution:.8f} mm.")
+print ("The sample size of the calculation was", (len(results_dict)/4),",using data with R^2 value in excess of .9.")
+print (f"The average resolution across the ROI is {average_fwhm:.8f} pixels, or {spatial_resolution:.8f} mm. Data-set standard deviation was {std_dev_FWHM:.8f}.")
 
 
 
-'''def calc_resolution(pix_pos: np.ndarray, intensity: np.ndarray) -> float: 
-    Calculating the resolution of a TIFF radiograph by pulling in the edge space function from the integrated .TIFF gray scale value
 
-    Parameter
-    ---------
-    pix_pos: pixel location in .TIFF as a 1D NumPy array
-    intensity: gray scale value at the associated pixel location 
-
-    Returns
-    -------
-    Resolution in units of milimeters
-    
-    print("To be implemented")
-    return 0.0'''

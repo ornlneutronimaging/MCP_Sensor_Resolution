@@ -113,6 +113,83 @@ boxes = np.array(boxes)
 print(boxes)
 np.savetxt('7998_edge_locations_boxes', boxes, fmt='%d', header = "Row, Column")
 
+#Saves and iterates all saved ROIs through the resolution script
+image=imageio.imread(data_path+'/normalized_sample_7998_obs_8015/integrated.tif')
+
+#establish the class for the model comparison (picking fit model with the highest R^2 value)
+class Model:
+        def __init__ (self, name ,r_squared, fwhm):
+            self.name = name 
+            self.r_squared = r_squared 
+            self.fwhm = fwhm 
+        def get_r_squared(self):
+                return self.r_squared
+        def get_fwhm(self):
+              return self.fwhm
+
+# prepare results container
+results_dict = {}  # (left_edge, y, right_edge): resolution_fitted
+
+for box in boxes:
+    #establishes the box
+    left_edge,y1,right_edge,y1=box
+    roi = image[y1,left_edge:right_edge]
+
+    #converts the ROI to dataframe to follow rest of program
+    df_roi = pd.DataFrame(roi, columns=['Intensity'])
+    df1 = df_roi["Intensity"]
+
+    #finds derivative of edge spread function using NumPy gradient (small dataset)
+    dydxdf = np.gradient(df1, 1)
+
+    #Gaussian fit model
+    y = dydxdf
+    x = np.arange(len(y))
+    mod = GaussianModel()
+    pars = mod.guess(y, x=x)
+    out = mod.fit(y,pars, x=x)
+    r_squared_G=out.rsquared
+    FWHM_G=out.params['fwhm'].value
+
+    #Lorentzian fit model
+    y = dydxdf
+    x = np.arange(len(y))
+    mod = LorentzianModel()
+    pars = mod.guess(y, x=x)
+    outL = mod.fit(y,pars, x=x)
+    r_squared_L = outL.rsquared
+    FWHM_L=outL.params['fwhm'].value
+
+    #Voigt fit model
+    y = dydxdf
+    x = np.arange(len(y))
+    mod = VoigtModel()
+    pars = mod.guess(y, x=x)
+    outV = mod.fit(y,pars, x=x)
+    r_squared_V=outV.rsquared
+    FWHM_V=outV.params['fwhm'].value
+
+    #Determines best model fit by comparing R-squared values, selects best to determine FWHM value from
+    ModelG = Model("Gaussian",r_squared_G,FWHM_G)
+    ModelL = Model("Lorentzian", r_squared_L, FWHM_L)
+    ModelV = Model("Voigt", r_squared_V, FWHM_V)
+    models = [ModelG, ModelL, ModelV]
+    best_model = max (models, key=lambda model: model.get_r_squared())
+    pixel_density = .055 *best_model.get_fwhm() #mm
+    
+    # record results
+    if best_model.r_squared > 0.9:
+        results_dict[(left_edge, y1, right_edge)] = best_model.get_fwhm()
+
+#print(results_dict)
+fwhm_values = list(results_dict.values())
+if fwhm_values:
+    average_fwhm = sum(fwhm_values)/len (fwhm_values)
+spatial_resolution = .055 *average_fwhm #mm
+print ("The sample size of the calculation was",len(results_dict)/4,",all with R^2 value in excess of .9")
+print ("The average resolution across the ROI is" ,(average_fwhm) ,"pixels, or",(spatial_resolution),"mm.")
+
+
 
 """def calc_resolution(pix_pos: np.ndarray, intensity: np.ndarray) -> float: 
     '''Calculating the resolution of a TIFF radiograph by pulling in the edge space function from the integrated .TIFF gray scale value

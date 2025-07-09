@@ -40,7 +40,7 @@ def NR_Resolution():
         Returns
         -------
         img: np.ndarray (2D)
-            The image, as a callable numpy N-dimensional array (2D--position and intensity), identified with a print statement affirming it is either 1) in need of conversion from Float32 to uint8, 2) it is already formatted as a uint8 data type and so doesn't need conversion, or
+            The image, as a callable numpy N-dimensional array (2D), identified with a print statement affirming it is either 1) in need of conversion from Float32 to uint8, 2) it is already formatted as a uint8 data type and so doesn't need conversion, or
             3) is another non-compatible type that will need further conversion. Note: ALL TimePix-1 normalized images *should* be natively Float32 TIFFs.
         """ 
         assert os.path.exists(data_path)
@@ -77,10 +77,21 @@ def NR_Resolution():
         #Replots in true B/W -- notice introduction of artifacts
         bw = cv.adaptiveThreshold(gray_8bit, 255, cv.ADAPTIVE_THRESH_MEAN_C, cv.THRESH_BINARY, 15, -2)
         return (bw)
+    
     #creates two separate images at highest contrast to separate horizontal and vertical features
     def horizontal_image_processing(bw):
         """Takes the black and white, uint8 type image (bw) and processes its horizontal features to increase contrast using OpenCV's erosion and dilation techniques. Introduces some smoothing (cv.blur) at the end in order to finalize contrast and reduce noise at edges prior to Canny Edge
-        detection technique being introduced to processed image.  
+        detection technique being introduced to processed image.  ##do we want to do the blurring feature--increases resolution but reduces number of data points
+
+        Parameters
+        ----------
+        bw: np.ndarray (2D)
+            A uint8-type ndarray compatible with OpenCV image processing techniques used to increase contrast and resolution. 
+
+        Returns
+        -------
+        horizontal: np.ndarray(2D)
+            The horizontal portions of the image, eroded, dilated, and then smoothed in order to increase contrast and resolution of the edges for follow-on Canny edge detection. 
         """
         horizontal = np.copy(bw)
         #horizontal processing -- separates and saves horizontal features
@@ -99,7 +110,21 @@ def NR_Resolution():
         horizontal [rows,cols] = smooth[rows, cols]
         return (horizontal)
         #plt.imshow(horizontal)
+
     def vert_image_processing(bw):
+        """Takes the black and white, uint8 type image (bw) and processes its vertical features to increase contrast using OpenCV's erosion and dilation techniques. Introduces some smoothing (cv.blur) at the end in order to finalize contrast and reduce noise at edges prior to Canny Edge
+        detection technique being introduced to processed image.  ##do we want to do the blurring feature--increases resolution but reduces number of data points?
+
+        Parameters
+        ----------
+        bw: np.ndarray (2D)
+            A uint8-type ndarray compatible with OpenCV image processing techniques used to increase contrast and resolution. 
+
+        Returns
+        -------
+        vertical: np.ndarray(2D)
+            The vertical portions of the image, eroded, dilated, and then smoothed in order to increase contrast and resolution of the edges for follow-on Canny edge detection. 
+        """
         #vertical processing -- separates and saves vertical features
         vertical = np.copy(bw)
         rows = vertical.shape[0]
@@ -121,14 +146,15 @@ def NR_Resolution():
         #OpenCV "addWeighted" function
         #print (horizontal.shape)
         #print (vertical.shape)
+
     def imagine_recombine(horizontal, alpha, vertical, beta)    
-        """ Recombines the horizontal and vertical processed images into a single image using OpenCV weighted image stacking method (addWeighted)
+        """Recombines the horizontal and vertical processed images into a single image using OpenCV weighted image stacking method (addWeighted)
 
         Parameters
         ----------
         horizontal: np.ndarray (2D)
             The horizontal portion of the parent image post-processing
-        vertical: np.ndarray (2d)
+        vertical: np.ndarray (2D)
             The vertical portion of the parent image post-processing
         alpha: float
             Value between 0 and 1; the weighting of the horizontal portion of the image. Defaults to .5.
@@ -146,8 +172,29 @@ def NR_Resolution():
         #plt.imshow (combined_image)
         #plt.colorbar ()
         return (recombined_image)
+    
     #Defines the ROI and processes the image to detect and identify the edges
-    def ROI (recombined_image, x1,y1,width1, height1)
+    def Canny_edge (recombined_image, x1,y1,width1, height1)
+        """Takes in the 2D array recombined_image and conducts the Canny edge detection across the established region of interest (ROI)
+
+        Parameters
+        ----------
+        recombined_image: np.ndarray (2D)
+            Agglomerated 2D array representing the weighted values of the horizontal image with the vertical image weight superimposed. 
+        x1: str
+            The left-most horizontal position for the desired region of interest.
+        y1: str
+            The uppermost (closest to the origin--image is plotted in 3rd quadrant as abs (x,y)) vertical position for the desired region of interest. 
+        width1: str
+            The width of the desired region of interest. 
+        height1: str
+            The height for the desired region of interest. 
+        
+        Returns
+        -------
+        edges: np.ndarray (2D)
+            Returns all edges with regions of interest highlighted and stores in 2D numpy array with spans for regions of interest
+        """
         #x1,y1,width1,height1 =  110,100,130,215
         roi_1=recombined_image[y1:y1+height1,x1:x1+width1]
         edges=cv.Canny(roi_1,0,150)

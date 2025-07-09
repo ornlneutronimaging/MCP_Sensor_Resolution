@@ -53,11 +53,23 @@ def NR_Resolution():
             print ("Image does not need further conversion--skip to horizontal_image_processing function")
         else:
             print ("Image needs",img.dtype,"conversion method")
-    
-        
-    #files from TimePix1 will be Float32, and will need to undergo conversion to uint8
-    def data_conversion (img, alpha, beta) #alpha is 0, beta is 255 for RGB to grayscale conversion
-        """Takes the image(img) identified in the nr_normalized_data function
+    def data_conversion (img, alpha, beta)
+        """Takes the image(img) identified in the nr_normalized_data function and converts it from native Float32 to uint8 for compatibility with OpenCV image processing processes. Finally, converts to a true black/white image for highest contrast prior to edge identification. For
+        TPX-1 normalized images, alpha is 0, beta is 255 for conversion. 
+
+        Parameters
+        ----------
+        img: np.ndarray (2D)
+            The image, as a callable numpy N-dimensional array (2D--position and intensity), formatted in Float32 (native data type for normalized TimePix-1 neutron radiographs)
+        alpha: str
+            A value, between 0 and 255, that sets the floor for color-channel values (grayscale will be converted to RGB valuation with much higher granularity than 16-step grayscale)
+        beta: str
+            A value, between 0 and 255, that sets the ceiling for color-channel values (grayscale will be converted to RGB valuation with much higher granularity than 16-step grayscale)
+
+        Returns
+        -------
+        bw: np.ndarray (2D)
+            A uint8-type ndarray compatible with OpenCV image processing techniques used to increase contrast and resolution. 
         """
         gray = cv.bitwise_not(img)
         cv.normalize(gray, gray, alpha, beta, norm_type=cv.NORM_MINMAX)
@@ -67,6 +79,9 @@ def NR_Resolution():
         return (bw)
     #creates two separate images at highest contrast to separate horizontal and vertical features
     def horizontal_image_processing(bw):
+        """Takes the black and white, uint8 type image (bw) and processes its horizontal features to increase contrast using OpenCV's erosion and dilation techniques. Introduces some smoothing (cv.blur) at the end in order to finalize contrast and reduce noise at edges prior to Canny Edge
+        detection technique being introduced to processed image.  
+        """
         horizontal = np.copy(bw)
         #horizontal processing -- separates and saves horizontal features
         cols = horizontal.shape[1]

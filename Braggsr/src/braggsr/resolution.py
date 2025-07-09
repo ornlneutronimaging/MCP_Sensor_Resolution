@@ -28,10 +28,21 @@ from lmfit.models import GaussianModel, LorentzianModel, VoigtModel
 def NR_Resolution():
 
 #establish prefix for files
-    def data (data_path):
-        """Ingests a file, checks the path, runs through tifffile package to convert to numpy array, and then checks the data type to ensure it's compatible with the image processing regime
-        """
-        #data_path = '/SNS/VENUS/IPTS-35945/shared/images_normalized/Gd Mask Normalization' 
+    def nr_normalized_data (data_path):
+        """Ingests a file, checks the path, runs through tifffile package to convert to numpy array, and then checks the data type to ensure it's compatible with the image processing regime (built for the normalized TimePix 1 file output--32 point floating bit TIF file). If the 
+        image is either already a unsigned single channel 8-bit image (uint8) or a completely separate data type, the program will warn of this and then recommend the next step. 
+
+        Parameters
+        ----------
+        data_path: str
+            The file path for the normalized image--file should be in 32-bit floating point TIF file
+
+        Returns
+        -------
+        img: np.ndarray (2D)
+            The image, as a callable numpy N-dimensional array (2D--position and intensity), identified with a print statement affirming it is either 1) in need of conversion from Float32 to uint8, 2) it is already formatted as a uint8 data type and so doesn't need conversion, or
+            3) is another non-compatible type that will need further conversion. Note: ALL TimePix-1 normalized images *should* be natively Float32 TIFFs.
+        """ 
         assert os.path.exists(data_path)
     #display file dimension and data type (determine whether file is Float 32 and needs to be converted to uint8 [single channel unsigned])
         img = imread(data_path+'/normalized_sample_7998_obs_8015/integrated.tif')
@@ -39,17 +50,15 @@ def NR_Resolution():
             print ("Image needs processing")
             return(img)
         elif img.dtype == "uint8":
-            print ("Image does not need further conversion")
+            print ("Image does not need further conversion--skip to horizontal_image_processing function")
         else:
             print ("Image needs",img.dtype,"conversion method")
-        #img.shape
-        #fig,ax = plt.subplots(1, 1, figsize=(15,15))
-        #ax.imshow(img, cmap="gray")
-        #print (img.shape)
-        #print (img.dtype)
+    
         
     #files from TimePix1 will be Float32, and will need to undergo conversion to uint8
     def data_conversion (img, alpha, beta) #alpha is 0, beta is 255 for RGB to grayscale conversion
+        """Takes the image(img) identified in the nr_normalized_data function
+        """
         gray = cv.bitwise_not(img)
         cv.normalize(gray, gray, alpha, beta, norm_type=cv.NORM_MINMAX)
         gray_8bit =cv.convertScaleAbs(gray)

@@ -34,7 +34,7 @@ def NR_Resolution():
 
         Parameters
         ----------
-        data_path: str
+        data_path: int
             The file path for the normalized image--file should be in 32-bit floating point TIF file
 
         Returns
@@ -61,9 +61,9 @@ def NR_Resolution():
         ----------
         img: np.ndarray (2D)
             The image, as a callable numpy N-dimensional array (2D--position and intensity), formatted in Float32 (native data type for normalized TimePix-1 neutron radiographs)
-        alpha: str
+        alpha: int
             A value, between 0 and 255, that sets the floor for color-channel values (grayscale will be converted to RGB valuation with much higher granularity than 16-step grayscale)
-        beta: str
+        beta: int
             A value, between 0 and 255, that sets the ceiling for color-channel values (grayscale will be converted to RGB valuation with much higher granularity than 16-step grayscale)
 
         Returns
@@ -147,7 +147,7 @@ def NR_Resolution():
         #print (horizontal.shape)
         #print (vertical.shape)
 
-    def imagine_recombine(horizontal, alpha, vertical, beta)    
+    def imagine_recombine(horizontal, alpha, vertical, beta):    
         """Recombines the horizontal and vertical processed images into a single image using OpenCV weighted image stacking method (addWeighted)
 
         Parameters
@@ -181,13 +181,13 @@ def NR_Resolution():
         ----------
         recombined_image: np.ndarray (2D)
             Agglomerated 2D array representing the weighted values of the horizontal image with the vertical image weight superimposed. 
-        x1: str
+        x1: int
             The left-most horizontal position for the desired region of interest.
-        y1: str
+        y1: int
             The uppermost (closest to the origin--image is plotted in 3rd quadrant as abs (x,y)) vertical position for the desired region of interest. 
-        width1: str
+        width1: int
             The width of the desired region of interest. 
-        height1: str
+        height1: int
             The height for the desired region of interest. 
         
         Returns
@@ -210,9 +210,9 @@ def NR_Resolution():
         ----------
         edges: np.ndarray (2D)
             All identified edges with regions of interest highlighted and stores in 2D numpy array with spans for regions of interest
-        x1: str
+        x1: int
             The left-most horizontal position for the desired region of interest.
-        y1: str
+        y1: int
             The uppermost (closest to the origin--image is plotted in 3rd quadrant as abs (x,y)) vertical position for the desired region of interest. 
         file_name_edges: str
             Desired output file name. 
@@ -238,14 +238,14 @@ def NR_Resolution():
         edge_locations: np.ndarray (2D)
             A 2D array containing the locations of the edges in the parent image for processing of the resolution function on the parent 
             image.
-        x1: str
+        x1: int
             The left-most horizontal position for the desired region of interest.
-        y1: str
+        y1: int
             The uppermost (closest to the origin--image is plotted in 3rd quadrant as abs (x,y)) vertical position for the desired region of interest. 
-        left_range: str
+        left_range: int
             The distance from the left of x1 to the left edge of the desired zone for analysis. 
-        right_range: str
-            The distance from the right of x1 to the right edge of the 
+        right_range: int
+            The distance from the right of x1 to the right edge of the zone.
         
         Returns
         -------
@@ -265,12 +265,36 @@ def NR_Resolution():
         zones = np.array(zones)
         #print(boxes)
         np.savetxt(zone_locations_fileName, zones, fmt='%d', header = "Row, Column")
-        return(zones)
+        return(zones, y1, left_lat_lim, right_lat_lim)
+    
     
     #establish the class for the model comparison (picking fit model with the highest R^2 value)
-    def run_fit (zones, y1, left_lat_lim, right_lat_lim, integrated_image_file):
+    def run_fit (zones, y1, left_lat_lim, right_lat_lim, normalized_image_file):
+        """Takes in the 2D array zones, the left and right lateral limits for the zone, and a file name. Redefines the image for analysis as the normalized, stacked image without the region of interest. Establishes
+        the "Model" class and the data of interest (r-squared value of fit, full-width/half-maximum values of fit) from the LMFit Gaussian, Lorentzian, and Voigt fit models' internal parameter reports. Finally, analyzes
+        the fit parameters, determines the strongest fit of the three based on the r-sqaured values, calls the FWHM value for that model (self-reported in the LMFit model report) and uses that FWHM value to determine sensor 
+        spatial resolution. 
+
+        Parameters
+        ----------
+        zones: np.ndarray (2D)
+            A 2D array with the zones as a series of boxes that have a single y value and x values that span from left to right lateral limits 
+        y1: int
+            The uppermost (closest to the origin--image is plotted in 3rd quadrant as abs (x,y)) vertical position for the desired region of interest 
+        left_lat_limit: int
+            The leftmost extent of the zone
+        right_lat_limit: int
+            The rightmost extent of the zone
+        normalized_image_file: str
+            The desired file name for the source normalized image
+
+        Returns
+        -------
+
+        Print statement detailing the data sample size, 
+        """
         #Saves and iterates all saved ROIs through the resolution script
-        image=imageio.imread(integrated_image_file)
+        image=imageio.imread(normalized_image_file)
         class Model:
             def __init__ (self, name ,r_squared, fwhm):
                 self.name = name 
@@ -331,14 +355,14 @@ def NR_Resolution():
         
             # record results
             if best_model.r_squared > 0.9:
-                results_dict[(left_edge, y1, right_edge)] = best_model.get_fwhm()
+                results_dict[(left_lat_lim, y1, right_lat_lim)] = best_model.get_fwhm()
             #print(results_dict)
             fwhm_values = list(results_dict.values())
             std_dev_FWHM = np.std(fwhm_values)
             if fwhm_values:
                 average_fwhm = sum(fwhm_values)/len (fwhm_values)
             spatial_resolution = .055 *average_fwhm #mm
-            print ("The sample size of the calculation was", (len(results_dict)/4),",using data with R^2 value in excess of .9.")
+            print ("The sample size of the calculation was", (len(results_dict)),",using data with R^2 value in excess of .9.")
             print (f"The average resolution across the ROI is {average_fwhm:.8f} pixels, or {spatial_resolution:.8f} mm. Data-set standard deviation was {std_dev_FWHM:.8f}.")
 
 

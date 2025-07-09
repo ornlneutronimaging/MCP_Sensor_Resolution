@@ -174,7 +174,7 @@ def NR_Resolution():
         return (recombined_image)
     
     #Defines the ROI and processes the image to detect and identify the edges
-    def Canny_edge (recombined_image, x1,y1,width1, height1)
+    def Canny_edges (recombined_image, x1,y1,width1, height1)
         """Takes in the 2D array recombined_image and conducts the Canny edge detection across the established region of interest (ROI)
 
         Parameters
@@ -193,7 +193,7 @@ def NR_Resolution():
         Returns
         -------
         edges: np.ndarray (2D)
-            Returns all edges with regions of interest highlighted and stores in 2D numpy array with spans for regions of interest
+            All identified edges in the desired region of interest highlighted and stores in 2D numpy array with spans for regions of interest
         """
         #x1,y1,width1,height1 =  110,100,130,215
         roi_1=recombined_image[y1:y1+height1,x1:x1+width1]
@@ -201,30 +201,74 @@ def NR_Resolution():
         return (edges)
 
     #export the edge locations
-    def exp_edge_loc (edges, x1, y1,,file_name_edges) #save_loc
+    def exp_edge_loc (edges, x1, y1,file_name_edges) #save_loc
+        """Takes in the 2D edges numpy array for the desired region of interest, identifies the indices of the non-zero row and column elements, combines those two lists
+        (rows, columns) into a single 2D array corresponding to the coordinates of an edge pixel, converts those coordinates back to 
+        parent image coordinates, and stores coordinates for plotting ROIs across parent image. 
+
+        Parameters
+        ----------
+        edges: np.ndarray (2D)
+            All identified edges with regions of interest highlighted and stores in 2D numpy array with spans for regions of interest
+        x1: str
+            The left-most horizontal position for the desired region of interest.
+        y1: str
+            The uppermost (closest to the origin--image is plotted in 3rd quadrant as abs (x,y)) vertical position for the desired region of interest. 
+        file_name_edges: str
+            Desired output file name. 
+
+        Return
+        ------
+        edge_locations: np.ndarray (2D)
+            A 2D array containing the locations of the edges in the parent image for processing of the resolution function on the parent 
+            image. 
+        """ 
         edge_locations = np.column_stack(np.where(edges != 0))
         edge_locations[:,0] += y1
         edge_locations[:,1] += x1
         np.savetxt(file_name_edges, edge_locations, fmt='%d', header = "Row, Column")
         return(edge_locations)
-    #establish individual 9x1 boxes along egdes to run through script
-    def ROI_zones (edge_locations, x1, y1, left_range, right_range, box_edge_locations_fileName)
+    
+    def ROI_zones (edge_locations, x1, y1, left_range, right_range, zone_locations_fileName)
+        """Takes in the edge locations, establishes zones of a desired height and width (default is 9 pixels wide, 1 pixel tall), and saves
+        boxes as 2D array in which the y-value is steady across the box; output data represents left edge, y1 --> right edge, y1.
+
+        Parameters
+        ----------
+        edge_locations: np.ndarray (2D)
+            A 2D array containing the locations of the edges in the parent image for processing of the resolution function on the parent 
+            image.
+        x1: str
+            The left-most horizontal position for the desired region of interest.
+        y1: str
+            The uppermost (closest to the origin--image is plotted in 3rd quadrant as abs (x,y)) vertical position for the desired region of interest. 
+        left_range: str
+            The distance from the left of x1 to the left edge of the desired zone for analysis. 
+        right_range: str
+            The distance from the right of x1 to the right edge of the 
+        
+        Returns
+        -------
+        zones: np.ndarray (2D)
+            Saves a 2D array with the zones as a series of boxes that have a single y value and x values that span from left to right lateral limits. 
+
+        """
         #box_width = 9
         #left_range = 5
         #right_range = 3
-        boxes=[]
+        zones=[]
         for (x1,y1) in edge_locations:
-            left_edge=x1-left_range
-            right_edge=x1+right_range
-            box=(left_edge,y1, right_edge, y1)
-            boxes.append(box)
-        boxes = np.array(boxes)
+            left_lat_lim=x1-left_range
+            right_lat_lim=x1+right_range
+            zone=(left_lat_lim,y1, right_lat_lim, y1)
+            zones.append(zone)
+        zones = np.array(zones)
         #print(boxes)
-        np.savetxt(box_edge_locations_fileName, boxes, fmt='%d', header = "Row, Column")
-        return(boxes)
+        np.savetxt(zone_locations_fileName, zones, fmt='%d', header = "Row, Column")
+        return(zones)
     
     #establish the class for the model comparison (picking fit model with the highest R^2 value)
-    def run_fit (boxes, y1, left_edge, right_edge, integrated_image_file):
+    def run_fit (zones, y1, left_lat_lim, right_lat_lim, integrated_image_file):
         #Saves and iterates all saved ROIs through the resolution script
         image=imageio.imread(integrated_image_file)
         class Model:
@@ -238,10 +282,10 @@ def NR_Resolution():
                 return self.fwhm
         # prepare results container
         results_dict = {}  
-        for box in boxes:
-            #establishes the box
-            left_edge,y1,right_edge,y1=box
-            roi = image[y1,left_edge:right_edge]
+        for zone in zones:
+            #establishes the zone
+            left_lat_lim,y1,right_lat_lim,y1=zone
+            roi = image[y1,left_lat_lim:right_lat_lim]
 
             #converts the ROI to dataframe to follow rest of program
             df_roi = pd.DataFrame(roi, columns=['Intensity'])

@@ -18,7 +18,7 @@ def nr_normalized_data (data_path:str)->str:
     Parameters
     ----------
     data_path: int
-        The file path for the normalized image--file should be in 32-bit floating point TIF file
+        The file path for the normalized image--file should be 32-bit floating point TIF file
 
     Returns
     -------

@@ -6,7 +6,7 @@ import imageio
 import cv2 as cv
 #import lmfit.models
 from lmfit.models import GaussianModel, LorentzianModel, VoigtModel
-def nr_normalized_data (data_path:str)->str:
+def nr_normalized_data (data_path='/SNS/users/9ix/data/SNS/VENUS/IPTS-35945/shared/images_normalized/Gd Mask Normalization/normalized_sample_7997_obs_8016')->str:
     """Ingests a file, checks the path, runs through tifffile package to convert to numpy array, and then checks the data type to ensure it's compatible with the image processing regime (built for the normalized TimePix 1 file output--32 point floating bit TIF file). If the 
     image is either already a unsigned single channel 8-bit image (uint8) or a completely separate data type, the program will warn of this and then recommend the next step. 
 
@@ -31,8 +31,9 @@ def nr_normalized_data (data_path:str)->str:
         print ("Image does not need further conversion--skip to horizontal_image_processing function")
     else:
         print ("Image needs",img.dtype,"conversion method")
-    return (img)
-def data_conversion (img:np.ndarray, alpha:str, beta:str)->np.ndarray:
+    return(img)
+
+def data_conversion (img:np.ndarray, alpha=0, beta=255)->np.ndarray:
     """Takes the image(img) identified in the nr_normalized_data function and converts it from native Float32 to uint8 for compatibility with OpenCV image processing processes. Finally, converts to a true black/white image for highest contrast prior to edge identification. For
     TPX-1 normalized images, alpha is 0, beta is 255 for conversion. 
 
@@ -124,7 +125,7 @@ def vert_image_processing(bw:np.ndarray)->np.ndarray:
     #print (horizontal.shape)
     #print (vertical.shape)
 
-def imagine_recombine(horizontal:np.ndarray, alpha:float, vertical:np.ndarray, beta:float)->np.ndarray:    
+def imagine_recombine(horizontal:np.ndarray, vertical:np.ndarray, alpha=.5,  beta=.5)->np.ndarray:    
     """Recombines the horizontal and vertical processed images into a single image using OpenCV weighted image stacking method (addWeighted)
 
     Parameters
@@ -151,7 +152,7 @@ def imagine_recombine(horizontal:np.ndarray, alpha:float, vertical:np.ndarray, b
     return (recombined_image)
 
 #Defines the ROI and processes the image to detect and identify the edges
-def Canny_edges (recombined_image:np.ndarray, x1:int,y1:int,width1:int, height1:int)->np.ndarray:
+def Canny_edges (recombined_image:np.ndarray, x1=110,y1=100,width1=130, height1=215)->np.ndarray:
     """Takes in the 2D array recombined_image and conducts the Canny edge detection across the established region of interest (ROI)
 
     Parameters
@@ -178,7 +179,7 @@ def Canny_edges (recombined_image:np.ndarray, x1:int,y1:int,width1:int, height1:
     return (edges, x1, y1)
 
 #export the edge locations
-def exp_edge_loc (edges:np.ndarray, x1:int, y1:int,file_name_edges:str) -> np.ndarray:
+def exp_edge_loc (edges:np.ndarray, x1:int, y1:int,file_name_edges="7998_edges_test") -> np.ndarray:
     """Takes in the 2D edges numpy array for the desired region of interest, identifies the indices of the non-zero row and column elements, combines those two lists
     (rows, columns) into a single 2D array corresponding to the coordinates of an edge pixel, converts those coordinates back to 
     parent image coordinates, and stores coordinates for plotting ROIs across parent image. 
@@ -206,7 +207,7 @@ def exp_edge_loc (edges:np.ndarray, x1:int, y1:int,file_name_edges:str) -> np.nd
     np.savetxt(file_name_edges, edge_locations, fmt='%d', header = "Row, Column")
     return(edge_locations)
 
-def ROI_zones (edge_locations:np.ndarray, x1:int, y1:int, left_range:int, right_range:int, zone_locations_fileName:str)->np.ndarray:
+def ROI_zones (edge_locations:np.ndarray, x1:int, y1:int, left_range=5, right_range=3, zone_locations_fileName = "edges_locations_7998_test")->np.ndarray:
     """Takes in the edge locations, establishes zones of a desired height and width (default is 9 pixels wide, 1 pixel tall), and saves
     boxes as 2D array in which the y-value is steady across the box; output data represents left edge, y1 --> right edge, y1.
 
@@ -220,9 +221,9 @@ def ROI_zones (edge_locations:np.ndarray, x1:int, y1:int, left_range:int, right_
     y1: int
         The uppermost (closest to the origin--image is plotted in 3rd quadrant as abs (x,y)) vertical position for the desired region of interest 
     left_range: int
-        The distance from the left of x1 to the left edge of the desired zone for analysis 
+        The distance from the left of x1 to the left edge of the desired zone for analysis (standard is 5 pixels)
     right_range: int
-        The distance from the right of x1 to the right edge of the zone
+        The distance from the right of x1 to the right edge of the zone (standard is 3 pixels)
     
     Returns
     -------
@@ -340,11 +341,6 @@ def run_fit (zones:np.ndarray, y1:int, left_lat_lim:int, right_lat_lim:int, img:
         spatial_resolution = .055 *average_fwhm #mm
         print ("The sample size of the calculation was", (len(results_dict)),",using data with R^2 value in excess of .9.")
         print (f"The average resolution across the ROI is {average_fwhm:.8f} pixels, or {spatial_resolution:.8f} mm. Data-set standard deviation was {std_dev_FWHM:.8f}.")
-
-
-
-
-
 
 
 

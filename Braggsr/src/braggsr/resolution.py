@@ -1,11 +1,6 @@
 import os 
-import sys
 import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.image as mpimg
-import scipy as sc
 import pandas as pd
-import tifffile 
 from tifffile.tifffile import imread
 import imageio
 import cv2 as cv

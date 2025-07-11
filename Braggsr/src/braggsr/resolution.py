@@ -1,18 +1,45 @@
-import os 
+#!/usr/bin/env python3
+"""TODO: Add a module level docstring that describes the purpose of this module and its functions."""
+
+import os
 import numpy as np
 import pandas as pd
 from tifffile.tifffile import imread
 import imageio
 import cv2 as cv
-#import lmfit.models
+
+# TODO: Remove the import that is no longer needed. We have automated tools that can do this, but it is good to do it manually at least once
+#       to learn the process (and train yourself to be consistent)
+# import lmfit.models
 from lmfit.models import GaussianModel, LorentzianModel, VoigtModel
-def nr_normalized_data (data_path:str)->str:
-    """Ingests a file, checks the path, runs through tifffile package to convert to numpy array, and then checks the data type to ensure it's compatible with the image processing regime (built for the normalized TimePix 1 file output--32 point floating bit TIF file). If the 
-    image is either already a unsigned single channel 8-bit image (uint8) or a completely separate data type, the program will warn of this and then recommend the next step. 
+
+
+# TODO: You should break down the description of your docstring into two sections: brief and detailed
+#       Soemethig like the following:
+# """
+# Brief description of the module.
+# Detailed description of the module.
+#
+# Parameters
+# ----------
+# param1: type
+#     Description of param1.
+# param2: type
+#     Description of param2.
+#
+# Returns
+# -------
+# return_value: type
+#     Description of the return value.
+# """
+# This is a standard practice for Python development, especially when the function is complex and requires a lot of explanation.
+def nr_normalized_data(data_path: str) -> str:
+    """Ingests a file, checks the path, runs through tifffile package to convert to numpy array, and then checks the data type to ensure it's compatible with the image processing regime (built for the normalized TimePix 1 file output--32 point floating bit TIF file). If the
+    image is either already a unsigned single channel 8-bit image (uint8) or a completely separate data type, the program will warn of this and then recommend the next step.
 
     Parameters
     ----------
-    data_path: int
+    data_path: int  <-----TODO: data_path should be a string, not an int
         The file path for the normalized image--file should be 32-bit floating point TIF file
 
     Returns
@@ -20,21 +47,42 @@ def nr_normalized_data (data_path:str)->str:
     img: np.ndarray (2D)
         The image, as a callable numpy N-dimensional array (2D), identified with a print statement affirming it is either 1) in need of conversion from Float32 to uint8, 2) it is already formatted as a uint8 data type and so doesn't need conversion, or
         3) is another non-compatible type that will need further conversion. Note: ALL TimePix-1 normalized images *should* be natively Float32 TIFFs.
-    """ 
+    """
     assert os.path.exists(data_path)
-    #display file dimension and data type (determine whether file is Float 32 and needs to be converted to uint8 [single channel unsigned])
-    img = imread(data_path+'/normalized_sample_7998_obs_8015/integrated.tif')
+    # display file dimension and data type (determine whether file is Float 32 and needs to be converted to uint8 [single channel unsigned])
+    # TODO: you are hard coding the file name here, this defeats the purpose of the function, which is to read any file from the specified path,
+    #       based on your function signature, you will probably want to pass the file name as a parameter as well.
+    img = imread(data_path + "/normalized_sample_7998_obs_8015/integrated.tif")
+    # TODO:
+    # The logic here is a bit confusing, Based on the code, I think you are trying to verify that the data
+    # is indeed a normalized, so what you should be checking is
+    # 1. Is the data type correct (i.e. needs to be float, both float32 and float64 are acceptable)
+    # 2. Is the data range correct (i.e. should be between 0 and 1) # note: this should not be a strict check as sometimes we have data that is >1.0
+    # 3. Is the data shape correct (i.e. should be a 2D array)
+    # If any of these checks fail, you should raise an exception or return an error message.
+    print("Image shape:", img.shape)
     if img.dtype == "float32":
-        print ("Image needs processing")
-        return(img)
+        # TODO: You should throw either a Warning or an Exception here, indicating that the data is not properly normalized and needs to be
+        #       processed.
+        print("Image needs processing")
+        # TODO: If you raise an Exception here, there is no need to return the data.
+        return img
     elif img.dtype == "uint8":
-        print ("Image does not need further conversion--skip to horizontal_image_processing function")
+        print(
+            "Image does not need further conversion--skip to horizontal_image_processing function"
+        )
     else:
-        print ("Image needs",img.dtype,"conversion method")
-    return (img)
-def data_conversion (img:np.ndarray, alpha:str, beta:str)->np.ndarray:
+        print("Image needs", img.dtype, "conversion method")
+    return img
+
+
+# TODO:
+# 1. Similarly as above, break down the description of your docstring into two sections: brief and detailed
+# 2. alpha should be an int, not a str (based on the description)
+# 3. beta should be an int, not a str (based on the description)
+def data_conversion(img: np.ndarray, alpha: str, beta: str) -> np.ndarray:
     """Takes the image(img) identified in the nr_normalized_data function and converts it from native Float32 to uint8 for compatibility with OpenCV image processing processes. Finally, converts to a true black/white image for highest contrast prior to edge identification. For
-    TPX-1 normalized images, alpha is 0, beta is 255 for conversion. 
+    TPX-1 normalized images, alpha is 0, beta is 255 for conversion.
 
     Parameters
     ----------
@@ -48,83 +96,120 @@ def data_conversion (img:np.ndarray, alpha:str, beta:str)->np.ndarray:
     Returns
     -------
     bw: np.ndarray (2D)
-        A uint8-type ndarray compatible with OpenCV image processing techniques used to increase contrast and resolution 
+        A uint8-type ndarray compatible with OpenCV image processing techniques used to increase contrast and resolution
     """
+    # TODO: not a strict requirement, but it is generally a good idea to add a few comments on what each step is doing here
+    #       especially if the code contains usage of multiple filters.
     gray = cv.bitwise_not(img)
     cv.normalize(gray, gray, alpha, beta, norm_type=cv.NORM_MINMAX)
-    gray_8bit =cv.convertScaleAbs(gray)
-    #Replots in true B/W -- notice introduction of artifacts
-    bw = cv.adaptiveThreshold(gray_8bit, 255, cv.ADAPTIVE_THRESH_MEAN_C, cv.THRESH_BINARY, 15, -2)
-    return (bw)
-    
-def horizontal_image_processing(bw:np.ndarray)->np.ndarray:
+    gray_8bit = cv.convertScaleAbs(gray)
+    # Replots in true B/W -- notice introduction of artifacts
+    bw = cv.adaptiveThreshold(
+        gray_8bit, 255, cv.ADAPTIVE_THRESH_MEAN_C, cv.THRESH_BINARY, 15, -2
+    )
+    return bw
+
+
+# TODO:
+# 1. Break down the description of your docstring into two sections: brief and detailed
+def horizontal_image_processing(bw: np.ndarray) -> np.ndarray:
     """Takes the black and white, uint8 type image (bw) and processes its horizontal features to increase contrast using OpenCV's erosion and dilation techniques. Introduces some smoothing (cv.blur) at the end in order to finalize contrast and reduce noise at edges prior to Canny Edge
-    detection technique being introduced to processed image.  
+    detection technique being introduced to processed image.
 
     Parameters
     ----------
     bw: np.ndarray (2D)
-        A uint8-type ndarray compatible with OpenCV image processing techniques used to increase contrast and resolution 
+        A uint8-type ndarray compatible with OpenCV image processing techniques used to increase contrast and resolution
 
     Returns
     -------
     horizontal: np.ndarray(2D)
-        The horizontal portions of the image, eroded, dilated, and then smoothed in order to increase contrast and resolution of the edges for follow-on Canny edge detection 
+        The horizontal portions of the image, eroded, dilated, and then smoothed in order to increase contrast and resolution of the edges for follow-on Canny edge detection
     """
     horizontal = np.copy(bw)
-    #horizontal processing -- separates and saves horizontal features
+    # horizontal processing -- separates and saves horizontal features
     cols = horizontal.shape[1]
+    # TODO:
+    # You have a magic number here (30), you probably know why 30 is chosen now, but you will not remember it in a few months.
+    # It is a good practice to define such numbers as constants at the top of the file, so that it is easier to change them later.
+    # Also, you should probably add a comment explaining why 30 is chosen.
     horizontal_size = cols // 30
-    horizontalStructure = cv.getStructuringElement(cv.MORPH_RECT, (horizontal_size,1))
+    horizontalStructure = cv.getStructuringElement(cv.MORPH_RECT, (horizontal_size, 1))
     horizontal = cv.erode(horizontal, horizontalStructure)
     horizontal = cv.dilate(horizontal, horizontalStructure)
     horizontal = cv.bitwise_not(horizontal)
-    H_edges = cv.adaptiveThreshold(horizontal, 255, cv.ADAPTIVE_THRESH_MEAN_C, cv.THRESH_BINARY, 3, -2)
-    kernel = np.ones((2,2),np.uint8)
+    H_edges = cv.adaptiveThreshold(
+        horizontal, 255, cv.ADAPTIVE_THRESH_MEAN_C, cv.THRESH_BINARY, 3, -2
+    )
+    # TODO:
+    # The kernel size is hard coded here, we probably want to turn it into a input argument in case we need to change it for different images.
+    # A general practice would be something like this:
+    # def horizontal_image_processing(bw: np.ndarray, kernel_size: Tuple[int, int]= (2, 2)) -> np.ndarray:
+    #     """Your docstring here"""
+    #     SOME_CODE_HERE
+    #     kernel = np.ones(kernel_size, np.uint8)
+    #     REST_CODE_HERE
+    kernel = np.ones((2, 2), np.uint8)
     H_edges = cv.dilate(H_edges, kernel)
     smooth = np.copy(horizontal)
-    smooth = cv.blur(smooth, (2,2))
-    (rows,cols) = np.where(H_edges != 0)
-    horizontal [rows,cols] = smooth[rows, cols]
-    return (horizontal)
+    # TODO:
+    # The kernel size of the blur is hard coded here, we should either reuse the kernel for dilation or make it an input argument.
+    # Check the example above
+    smooth = cv.blur(smooth, (2, 2))
+    (rows, cols) = np.where(H_edges != 0)
+    horizontal[rows, cols] = smooth[rows, cols]
+    return horizontal
 
-def vert_image_processing(bw:np.ndarray)->np.ndarray:
+
+# TODO:
+# My suggestions are very similar to the previous functions, so I will not repeat them here.
+def vert_image_processing(bw: np.ndarray) -> np.ndarray:
     """Takes the black and white, uint8 type image (bw) and processes its vertical features to increase contrast using OpenCV's erosion and dilation techniques. Introduces some smoothing (cv.blur) at the end in order to finalize contrast and reduce noise at edges prior to Canny Edge
     detection technique being introduced to processed image.  ##do we want to do the blurring feature--increases resolution but reduces number of data points?
 
     Parameters
     ----------
     bw: np.ndarray (2D)
-        A uint8-type ndarray compatible with OpenCV image processing techniques used to increase contrast and resolution 
+        A uint8-type ndarray compatible with OpenCV image processing techniques used to increase contrast and resolution
 
     Returns
     -------
     vertical: np.ndarray(2D)
-        The vertical portions of the image, eroded, dilated, and then smoothed in order to increase contrast and resolution of the edges for follow-on Canny edge detection 
+        The vertical portions of the image, eroded, dilated, and then smoothed in order to increase contrast and resolution of the edges for follow-on Canny edge detection
     """
-    #vertical processing -- separates and saves vertical features
+    # vertical processing -- separates and saves vertical features
     vertical = np.copy(bw)
     rows = vertical.shape[0]
     verticalsize = rows // 30
-    verticalStructure = cv.getStructuringElement(cv.MORPH_RECT, (1,verticalsize))
-    #vertical processing -- *enhance!*
+    verticalStructure = cv.getStructuringElement(cv.MORPH_RECT, (1, verticalsize))
+    # vertical processing -- *enhance!*
     vertical = cv.erode(vertical, verticalStructure)
     vertical = cv.dilate(vertical, verticalStructure)
     vertical = cv.bitwise_not(vertical)
-    V_edges = cv.adaptiveThreshold(vertical, 255, cv.ADAPTIVE_THRESH_MEAN_C, cv.THRESH_BINARY, 3, -2)
-    kernel = np.ones((2,2),np.uint8)
+    V_edges = cv.adaptiveThreshold(
+        vertical, 255, cv.ADAPTIVE_THRESH_MEAN_C, cv.THRESH_BINARY, 3, -2
+    )
+    kernel = np.ones((2, 2), np.uint8)
     V_edges = cv.dilate(V_edges, kernel)
     smooth = np.copy(vertical)
-    smooth = cv.blur(smooth, (2,2))
-    (rows,cols) = np.where(V_edges != 0)
-    vertical [rows,cols] = smooth[rows, cols]
-    return(vertical)
-    #Recombines the horizontal and vertical images into a single processed and edge-optimized image using 
-    #OpenCV "addWeighted" function
-    #print (horizontal.shape)
-    #print (vertical.shape)
+    smooth = cv.blur(smooth, (2, 2))
+    (rows, cols) = np.where(V_edges != 0)
+    vertical[rows, cols] = smooth[rows, cols]
+    return vertical
 
-def imagine_recombine(horizontal:np.ndarray, alpha:float, vertical:np.ndarray, beta:float)->np.ndarray:    
+
+# TODO: Remember to remove the commented out code, they are often not needed any more, and no need to
+#       keep them in the codebase.
+#       If you need them as debug output, try using logging.debug instead.
+# Recombines the horizontal and vertical images into a single processed and edge-optimized image using
+# OpenCV "addWeighted" function
+# print (horizontal.shape)
+# print (vertical.shape)
+
+
+def imagine_recombine(
+    horizontal: np.ndarray, alpha: float, vertical: np.ndarray, beta: float
+) -> np.ndarray:
     """Recombines the horizontal and vertical processed images into a single image using OpenCV weighted image stacking method (addWeighted)
 
     Parameters
@@ -137,51 +222,75 @@ def imagine_recombine(horizontal:np.ndarray, alpha:float, vertical:np.ndarray, b
         Value between 0 and 1; the weighting of the horizontal portion of the image (defaults to .5)
     beta: float
         Value between 0 and 1-alpha; the weighting of the vertical portion of the image (defaults to 1-alpha)
-    
+
     Returns
     -------
     recombined_image: np.ndarray (2D)
-        Agglomerated 2D array representing the weighted values of the horizontal image with the vertical image weight superimposed 
+        Agglomerated 2D array representing the weighted values of the horizontal image with the vertical image weight superimposed
     """
-    #alpha = .5
-    #beta = 1-alpha
+    # TODO:
+    # It seems like alpha and beta are not independent parameters. If so, you should consider removing one of them and calculate
+    # the other on the fly.
+    # Also, alpha and beta have range requirement, so it is a good practice to check that they are within the range [0, 1]
+    # and raise an exception if they are not.
+    #
+    # alpha = .5
+    # beta = 1-alpha
     recombined_image = cv.addWeighted(horizontal, alpha, vertical, beta, 0.0)
-    #plt.imshow (combined_image)
-    #plt.colorbar ()
-    return (recombined_image)
+    # TODO: these looks like debug plot, please consider removing them before making the pull request.
+    # plt.imshow (combined_image)
+    # plt.colorbar ()
+    return recombined_image
 
-#Defines the ROI and processes the image to detect and identify the edges
-def Canny_edges (recombined_image:np.ndarray, x1:int,y1:int,width1:int, height1:int)->np.ndarray:
+
+# TODO:
+# 1. Your return type in the function signature is np.ndarray, but you are returning a tuple (edges, x1, y1).
+# Defines the ROI and processes the image to detect and identify the edges
+def Canny_edges(
+    recombined_image: np.ndarray, x1: int, y1: int, width1: int, height1: int
+) -> np.ndarray:
     """Takes in the 2D array recombined_image and conducts the Canny edge detection across the established region of interest (ROI)
 
     Parameters
     ----------
     recombined_image: np.ndarray (2D)
-        Agglomerated 2D array representing the weighted values of the horizontal image with the vertical image weight superimposed 
+        Agglomerated 2D array representing the weighted values of the horizontal image with the vertical image weight superimposed
     x1: int
         The left-most horizontal position for the desired region of interest
     y1: int
-        The uppermost (closest to the origin--image is plotted in 3rd quadrant as abs (x,y)) vertical position for the desired region of interest 
+        The uppermost (closest to the origin--image is plotted in 3rd quadrant as abs (x,y)) vertical position for the desired region of interest
     width1: int
-        The width of the desired region of interest 
+        The width of the desired region of interest
     height1: int
-        The height for the desired region of interest 
-    
+        The height for the desired region of interest
+
     Returns
     -------
     edges: np.ndarray (2D)
         All identified edges in the desired region of interest highlighted and stores in 2D numpy array with spans for regions of interest
     """
-    #x1,y1,width1,height1 =  110,100,130,215
-    roi_1=recombined_image[y1:y1+height1,x1:x1+width1]
-    edges=cv.Canny(roi_1,0,150)
+    # TODO: cleanup the magical debug numbers here, before readying your code for production.
+    # x1,y1,width1,height1 =  110,100,130,215
+    roi_1 = recombined_image[y1 : y1 + height1, x1 : x1 + width1]
+    # TODO:
+    # Two magical numbers here (0 and 150), you should consider making them input parameters to the function.
+    # Also, you should probably check that the roi_1 is not empty before applying Canny edge detection.
+    # If it is empty, you should raise an exception or return an error message.
+    # This is called defensive programming, and it is a good practice to follow.
+    edges = cv.Canny(roi_1, 0, 150)
     return (edges, x1, y1)
 
-#export the edge locations
-def exp_edge_loc (edges:np.ndarray, x1:int, y1:int,file_name_edges:str) -> np.ndarray:
+
+# TODO:
+# 1. Break down the description of your docstring into two sections: brief and detailed
+# 2. Is the saving to file necessary here? Couldn't we just work with the numpy array in memory directly?
+# export the edge locations
+def exp_edge_loc(
+    edges: np.ndarray, x1: int, y1: int, file_name_edges: str
+) -> np.ndarray:
     """Takes in the 2D edges numpy array for the desired region of interest, identifies the indices of the non-zero row and column elements, combines those two lists
-    (rows, columns) into a single 2D array corresponding to the coordinates of an edge pixel, converts those coordinates back to 
-    parent image coordinates, and stores coordinates for plotting ROIs across parent image. 
+    (rows, columns) into a single 2D array corresponding to the coordinates of an edge pixel, converts those coordinates back to
+    parent image coordinates, and stores coordinates for plotting ROIs across parent image.
 
     Parameters
     ----------
@@ -190,72 +299,92 @@ def exp_edge_loc (edges:np.ndarray, x1:int, y1:int,file_name_edges:str) -> np.nd
     x1: int
         The left-most horizontal position for the desired region of interest
     y1: int
-        The uppermost (closest to the origin--image is plotted in 3rd quadrant as abs (x,y)) vertical position for the desired region of interest 
+        The uppermost (closest to the origin--image is plotted in 3rd quadrant as abs (x,y)) vertical position for the desired region of interest
     file_name_edges: str
-        Desired output file name 
+        Desired output file name
 
     Return
     ------
     edge_locations: np.ndarray (2D)
-        A 2D array containing the locations of the edges in the parent image for processing of the resolution function on the parent 
-        image 
-    """ 
+        A 2D array containing the locations of the edges in the parent image for processing of the resolution function on the parent
+        image
+    """
     edge_locations = np.column_stack(np.where(edges != 0))
-    edge_locations[:,0] += y1
-    edge_locations[:,1] += x1
-    np.savetxt(file_name_edges, edge_locations, fmt='%d', header = "Row, Column")
-    return(edge_locations)
+    edge_locations[:, 0] += y1
+    edge_locations[:, 1] += x1
+    np.savetxt(file_name_edges, edge_locations, fmt="%d", header="Row, Column")
+    return edge_locations
 
-def ROI_zones (edge_locations:np.ndarray, x1:int, y1:int, left_range:int, right_range:int, zone_locations_fileName:str)->np.ndarray:
+
+# TODO:
+# 1. Break down the description of your docstring into two sections: brief and detailed
+# 2. The return type in the function signature is np.ndarray, but you are returning a tuple (zones, y1, left_lat_lim, right_lat_lim).
+def ROI_zones(
+    edge_locations: np.ndarray,
+    x1: int,
+    y1: int,
+    left_range: int,
+    right_range: int,
+    zone_locations_fileName: str,
+) -> np.ndarray:
     """Takes in the edge locations, establishes zones of a desired height and width (default is 9 pixels wide, 1 pixel tall), and saves
     boxes as 2D array in which the y-value is steady across the box; output data represents left edge, y1 --> right edge, y1.
 
     Parameters
     ----------
     edge_locations: np.ndarray (2D)
-        A 2D array containing the locations of the edges in the parent image for processing of the resolution function on the parent 
+        A 2D array containing the locations of the edges in the parent image for processing of the resolution function on the parent
         image
     x1: int
         The left-most horizontal position for the desired region of interest
     y1: int
-        The uppermost (closest to the origin--image is plotted in 3rd quadrant as abs (x,y)) vertical position for the desired region of interest 
+        The uppermost (closest to the origin--image is plotted in 3rd quadrant as abs (x,y)) vertical position for the desired region of interest
     left_range: int
-        The distance from the left of x1 to the left edge of the desired zone for analysis 
+        The distance from the left of x1 to the left edge of the desired zone for analysis
     right_range: int
         The distance from the right of x1 to the right edge of the zone
-    
+
     Returns
     -------
     zones: np.ndarray (2D)
-        Saves a 2D array with the zones as a series of boxes that have a single y value and x values that span from left to right lateral limits 
+        Saves a 2D array with the zones as a series of boxes that have a single y value and x values that span from left to right lateral limits
 
     """
-    #box_width = 9
-    #left_range = 5
-    #right_range = 3
-    zones=[]
-    for (x1,y1) in edge_locations:
-        left_lat_lim=x1-left_range
-        right_lat_lim=x1+right_range
-        zone=(left_lat_lim,y1, right_lat_lim, y1)
+    # TODO: remember to remove the commented out debug code before making the pull request.
+    # box_width = 9
+    # left_range = 5
+    # right_range = 3
+    zones = []
+    for x1, y1 in edge_locations:
+        left_lat_lim = x1 - left_range
+        right_lat_lim = x1 + right_range
+        zone = (left_lat_lim, y1, right_lat_lim, y1)
         zones.append(zone)
     zones = np.array(zones)
-    #print(boxes)
-    np.savetxt(zone_locations_fileName, zones, fmt='%d', header = "Row, Column")
-    return(zones, y1, left_lat_lim, right_lat_lim)
+    # print(boxes)
+    np.savetxt(zone_locations_fileName, zones, fmt="%d", header="Row, Column")
+    return (zones, y1, left_lat_lim, right_lat_lim)
 
-def run_fit (zones:np.ndarray, y1:int, left_lat_lim:int, right_lat_lim:int, img:np.ndarray)->str:
+
+# TODO:
+# 1. Break down the description of your docstring into two sections: brief and detailed
+# 2. The return type in the function signature is str, but you are not returning anything (print statement is not a return),
+#    I would recommend returning the fit results dict (results_dict), this will allow downstream processing to access the results
+#    directly without having to parse the print statements.
+def run_fit(
+    zones: np.ndarray, y1: int, left_lat_lim: int, right_lat_lim: int, img: np.ndarray
+) -> str:
     """Takes in the 2D array zones, the left and right lateral limits for the zone, and a file name. Redefines the image for analysis as the normalized, stacked image without the region of interest. Establishes
     the "Model" class and the data of interest (r-squared value of fit, full-width/half-maximum values of fit) from the LMFit Gaussian, Lorentzian, and Voigt fit models' internal parameter reports. Finally, analyzes
-    the fit parameters, determines the strongest fit of the three based on the r-sqaured values, calls the FWHM value for that model (self-reported in the LMFit model report) and uses that FWHM value to determine sensor 
-    spatial resolution. 
+    the fit parameters, determines the strongest fit of the three based on the r-sqaured values, calls the FWHM value for that model (self-reported in the LMFit model report) and uses that FWHM value to determine sensor
+    spatial resolution.
 
     Parameters
     ----------
     zones: np.ndarray (2D)
-        A 2D array with the zones as a series of boxes that have a single y value and x values that span from left to right lateral limits 
+        A 2D array with the zones as a series of boxes that have a single y value and x values that span from left to right lateral limits
     y1: int
-        The uppermost (closest to the origin--image is plotted in 3rd quadrant as abs (x,y)) vertical position for the desired region of interest 
+        The uppermost (closest to the origin--image is plotted in 3rd quadrant as abs (x,y)) vertical position for the desired region of interest
     left_lat_limit: int
         The leftmost extent of the zone
     right_lat_limit: int
@@ -267,85 +396,113 @@ def run_fit (zones:np.ndarray, y1:int, left_lat_lim:int, right_lat_lim:int, img:
     Returns
     -------
     str
-        Print statements detailing the data sample size, average resolution and spatial resolution of the sensor, and the standard deviation of the data set as a measure of the strength of the data correlation 
+        Print statements detailing the data sample size, average resolution and spatial resolution of the sensor, and the standard deviation of the data set as a measure of the strength of the data correlation
     """
-    #Saves and iterates all saved ROIs through the resolution script
-    image=imageio.imread(img)
+    # Saves and iterates all saved ROIs through the resolution script
+    # TODO: why do you use imageio here? img is already a numpy array, are you casting into something else?
+    image = imageio.imread(img)
+
+    # TODO: It seems like you are defining a class to hold the fitting results, and you should research on Python's dataclasses
+    #       for this purpose, they are more lightweight and easier to use.
+    #       Also, consider moving the definition of the model fitting results class outside of the function,
+    #       so that it can be reused in other parts of the codebase.
     class Model:
-        def __init__ (self, name ,r_squared, fwhm):
-            self.name = name 
-            self.r_squared = r_squared 
-            self.fwhm = fwhm 
+        def __init__(self, name, r_squared, fwhm):
+            self.name = name
+            self.r_squared = r_squared
+            self.fwhm = fwhm
+
         def get_r_squared(self):
-                return self.r_squared
+            return self.r_squared
+
         def get_fwhm(self):
             return self.fwhm
-    # prepare results container
-    results_dict = {}  
-    for zone in zones:
-        #establishes the zone
-        left_lat_lim,y1,right_lat_lim,y1=zone
-        roi = image[y1,left_lat_lim:right_lat_lim]
 
-        #converts the ROI to dataframe to follow rest of program
-        df_roi = pd.DataFrame(roi, columns=['Intensity'])
+    # prepare results container
+    results_dict = {}
+    for zone in zones:
+        # establishes the zone
+        left_lat_lim, y1, right_lat_lim, y1 = zone
+        roi = image[y1, left_lat_lim:right_lat_lim]
+
+        # converts the ROI to dataframe to follow rest of program
+        # TODO: You should be able to use the numpy array directly without converting it to a DataFrame.
+        #       It is unclear to me why you need to convert it to a DataFrame here.
+        df_roi = pd.DataFrame(roi, columns=["Intensity"])
         df1 = df_roi["Intensity"]
 
-        #finds derivative of edge spread function using NumPy gradient (small dataset)
+        # finds derivative of edge spread function using NumPy gradient (small dataset)
         dydxdf = np.gradient(df1, 1)
 
-        #Gaussian fit model
+        # TODO: Notice how similar the following three sections are, you should consider refactoring this code
+        #       into a separate function that takes the model type as an argument and returns the fit results.
+        #       This will reduce code duplication and make the code easier to maintain.
+        # Gaussian fit model
         y = dydxdf
         x = np.arange(len(y))
         mod = GaussianModel()
         pars = mod.guess(y, x=x)
-        out = mod.fit(y,pars, x=x)
-        r_squared_G=out.rsquared
-        FWHM_G=out.params['fwhm'].value
+        out = mod.fit(y, pars, x=x)
+        r_squared_G = out.rsquared
+        FWHM_G = out.params["fwhm"].value
 
-        #Lorentzian fit model
+        # Lorentzian fit model
         y = dydxdf
         x = np.arange(len(y))
         mod = LorentzianModel()
         pars = mod.guess(y, x=x)
-        outL = mod.fit(y,pars, x=x)
+        outL = mod.fit(y, pars, x=x)
         r_squared_L = outL.rsquared
-        FWHM_L=outL.params['fwhm'].value
+        FWHM_L = outL.params["fwhm"].value
 
-        #Voigt fit model
+        # Voigt fit model
         y = dydxdf
         x = np.arange(len(y))
         mod = VoigtModel()
         pars = mod.guess(y, x=x)
-        outV = mod.fit(y,pars, x=x)
-        r_squared_V=outV.rsquared
-        FWHM_V=outV.params['fwhm'].value
+        outV = mod.fit(y, pars, x=x)
+        r_squared_V = outV.rsquared
+        FWHM_V = outV.params["fwhm"].value
 
-        #Determines best model fit by comparing R-squared values, selects best to determine FWHM value from
-        ModelG = Model("Gaussian",r_squared_G,FWHM_G)
+        # Determines best model fit by comparing R-squared values, selects best to determine FWHM value from
+        ModelG = Model("Gaussian", r_squared_G, FWHM_G)
         ModelL = Model("Lorentzian", r_squared_L, FWHM_L)
         ModelV = Model("Voigt", r_squared_V, FWHM_V)
         models = [ModelG, ModelL, ModelV]
-        best_model = max (models, key=lambda model: model.get_r_squared())
-        pixel_density = .055 *best_model.get_fwhm() #mm
-    
+        best_model = max(models, key=lambda model: model.get_r_squared())
+        # TODO: you calculated the pixel density in mm, but you are not using it anywhere, were you planning to use it later?
+        pixel_density = 0.055 * best_model.get_fwhm()  # mm
+
+        # TODO: the criteria 0.9 should be an input parameter to the function, and it can be default to 0.9
+        #       the function signature should be something like this:
+        #       def run_fit(
+        #           zones: np.ndarray,
+        #           y1: int,
+        #           left_lat_lim: int,
+        #           right_lat_lim: int,
+        #           img: np.ndarray,
+        #           r_squared_threshold: float = 0.9,
+        #       ) -> str:
+        #       This will allow you to change the threshold
         # record results
         if best_model.r_squared > 0.9:
             results_dict[(left_lat_lim, y1, right_lat_lim)] = best_model.get_fwhm()
-        #print(results_dict)
+        # TODO: if you would like to function to announce the results, you should consider using logging.info, that way
+        #       you don't have to comment out the print statement when you don't want to see it, adjusting the logging level
+        #       will allow you to control the output.
+        # print(results_dict)
         fwhm_values = list(results_dict.values())
         std_dev_FWHM = np.std(fwhm_values)
         if fwhm_values:
-            average_fwhm = sum(fwhm_values)/len (fwhm_values)
-        spatial_resolution = .055 *average_fwhm #mm
-        print ("The sample size of the calculation was", (len(results_dict)),",using data with R^2 value in excess of .9.")
-        print (f"The average resolution across the ROI is {average_fwhm:.8f} pixels, or {spatial_resolution:.8f} mm. Data-set standard deviation was {std_dev_FWHM:.8f}.")
-
-
-
-
-
-
-
-
-
+            average_fwhm = sum(fwhm_values) / len(fwhm_values)
+        spatial_resolution = 0.055 * average_fwhm  # mm
+        # TODO: As mentioned above, print statements are not returns, and you should return the final processing results
+        #       These print statement should be converted to logging.info statements.
+        print(
+            "The sample size of the calculation was",
+            (len(results_dict)),
+            ",using data with R^2 value in excess of .9.",
+        )
+        print(
+            f"The average resolution across the ROI is {average_fwhm:.8f} pixels, or {spatial_resolution:.8f} mm. Data-set standard deviation was {std_dev_FWHM:.8f}."
+        )

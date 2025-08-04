@@ -9,13 +9,16 @@ import imageio
 import cv2 as cv
 from lmfit.models import GaussianModel, LorentzianModel, VoigtModel
 def nr_normalized_data (data_path:str)->str:
-    """Ingests a file, checks the path, runs through tifffile package to convert to numpy array, and then checks the data type to ensure it's compatible with the image processing regime (built for the normalized TimePix 1 file output--32 point floating bit TIF file). If the 
+    """
+    Checks file path, establishes callable object for normalized data. 
+
+    Ingests a file, checks the path, runs through tifffile package to convert to numpy array, and then checks the data type to ensure it's compatible with the image processing regime (built for the normalized TimePix 1 file output--32 point floating bit TIF file). If the 
     image is either already a unsigned single channel 8-bit image (uint8) or a completely separate data type, the program will warn of this and then recommend the next step. 
 
     Parameters
     ----------
-    data_path: int
-        The file path for the normalized image--file should be 32-bit floating point TIF file
+    data_path: str
+        The file path for the normalized image-file should be 32-bit floating point TIF file
 
     Returns
     -------
@@ -25,7 +28,7 @@ def nr_normalized_data (data_path:str)->str:
     """ 
     assert os.path.exists(data_path)
     #display file dimension and data type (determine whether file is Float 32 and needs to be converted to uint8 [single channel unsigned])
-    img = imread(data_path+'/normalized_sample_7998_obs_8015/integrated.tif')
+    img = imread(data_path)
     if img.dtype == "float32":
         print ("Image needs processing")
         return(img)
@@ -34,7 +37,8 @@ def nr_normalized_data (data_path:str)->str:
     else:
         print ("Image needs",img.dtype,"conversion method")
     return (img)
-def data_conversion (img:np.ndarray, alpha:str, beta:str)->np.ndarray:
+
+def data_conversion (img:np.ndarray, alpha:int, beta:int)->np.ndarray:
     """Takes the image(img) identified in the nr_normalized_data function and converts it from native Float32 to uint8 for compatibility with OpenCV image processing processes. Finally, converts to a true black/white image for highest contrast prior to edge identification. For
     TPX-1 normalized images, alpha is 0, beta is 255 for conversion. 
 
@@ -59,7 +63,7 @@ def data_conversion (img:np.ndarray, alpha:str, beta:str)->np.ndarray:
     bw = cv.adaptiveThreshold(gray_8bit, 255, cv.ADAPTIVE_THRESH_MEAN_C, cv.THRESH_BINARY, 15, -2)
     return (bw)
     
-def horizontal_image_processing(bw:np.ndarray)->np.ndarray:
+def horizontal_image_processing(bw:np.ndarray, h_scale_factor: int, blocksize: int, c_factor: int)->np.ndarray:
     """Takes the black and white, uint8 type image (bw) and processes its horizontal features to increase contrast using OpenCV's erosion and dilation techniques. Introduces some smoothing (cv.blur) at the end in order to finalize contrast and reduce noise at edges prior to Canny Edge
     detection technique being introduced to processed image.  
 
@@ -67,7 +71,12 @@ def horizontal_image_processing(bw:np.ndarray)->np.ndarray:
     ----------
     bw: np.ndarray (2D)
         A uint8-type ndarray compatible with OpenCV image processing techniques used to increase contrast and resolution 
-
+    h_scale_factor: int
+        An integer for which to scale (or bin) the processing of the horizontal data. 30 works well for images for the MCP sensor. 
+    blocksize: int
+        An integer that specifies the dimensions (square) of the neighborhood for calculating the adaptive threshold. The larger the block, the lower the local resolution,
+        but can better handle image-wide variations in illumination. 
+    c_factor: 
     Returns
     -------
     horizontal: np.ndarray(2D)
@@ -76,29 +85,31 @@ def horizontal_image_processing(bw:np.ndarray)->np.ndarray:
     horizontal = np.copy(bw)
     #horizontal processing -- separates and saves horizontal features
     cols = horizontal.shape[1]
-    horizontal_size = cols // 30
+    horizontal_size = cols // h_scale_factor
     horizontalStructure = cv.getStructuringElement(cv.MORPH_RECT, (horizontal_size,1))
     horizontal = cv.erode(horizontal, horizontalStructure)
     horizontal = cv.dilate(horizontal, horizontalStructure)
     horizontal = cv.bitwise_not(horizontal)
-    H_edges = cv.adaptiveThreshold(horizontal, 255, cv.ADAPTIVE_THRESH_MEAN_C, cv.THRESH_BINARY, 3, -2)
+    H_edges = cv.adaptiveThreshold(horizontal, 255, cv.ADAPTIVE_THRESH_MEAN_C, cv.THRESH_BINARY, blocksize, c_factor)
     kernel = np.ones((2,2),np.uint8)
     H_edges = cv.dilate(H_edges, kernel)
     smooth = np.copy(horizontal)
     smooth = cv.blur(smooth, (2,2))
     (rows,cols) = np.where(H_edges != 0)
     horizontal [rows,cols] = smooth[rows, cols]
-    return (horizontal)
+    return (horizontal, h_scale_factor)
 
-def vert_image_processing(bw:np.ndarray)->np.ndarray:
+def vert_image_processing(bw:np.ndarray,h_scale_factor:int )->np.ndarray:
     """Takes the black and white, uint8 type image (bw) and processes its vertical features to increase contrast using OpenCV's erosion and dilation techniques. Introduces some smoothing (cv.blur) at the end in order to finalize contrast and reduce noise at edges prior to Canny Edge
-    detection technique being introduced to processed image.  ##do we want to do the blurring feature--increases resolution but reduces number of data points?
+    detection technique being introduced to processed image.
 
     Parameters
     ----------
     bw: np.ndarray (2D)
         A uint8-type ndarray compatible with OpenCV image processing techniques used to increase contrast and resolution 
-
+    h_scale_factor: int
+        An integer for which to scale (or bin) the processing of the horizontal data. 30 works well for images for the MCP sensor. Please
+        note that this may need to be changed if the image is not square (i.e. m x n pixels where m =/= n). 
     Returns
     -------
     vertical: np.ndarray(2D)
@@ -107,9 +118,8 @@ def vert_image_processing(bw:np.ndarray)->np.ndarray:
     #vertical processing -- separates and saves vertical features
     vertical = np.copy(bw)
     rows = vertical.shape[0]
-    verticalsize = rows // 30
+    verticalsize = rows // h_scale_factor
     verticalStructure = cv.getStructuringElement(cv.MORPH_RECT, (1,verticalsize))
-    #vertical processing -- *enhance!*
     vertical = cv.erode(vertical, verticalStructure)
     vertical = cv.dilate(vertical, verticalStructure)
     vertical = cv.bitwise_not(vertical)

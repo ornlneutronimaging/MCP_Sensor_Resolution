@@ -1,10 +1,12 @@
+"""Resolution is a module that determines neutron radiography spatial resolution through automated edge identification and
+establishment of the line spread function full width, half maximum value"""
+
 import os 
 import numpy as np
 import pandas as pd
 from tifffile.tifffile import imread
 import imageio
 import cv2 as cv
-#import lmfit.models
 from lmfit.models import GaussianModel, LorentzianModel, VoigtModel
 def nr_normalized_data (data_path:str)->str:
     """Ingests a file, checks the path, runs through tifffile package to convert to numpy array, and then checks the data type to ensure it's compatible with the image processing regime (built for the normalized TimePix 1 file output--32 point floating bit TIF file). If the 

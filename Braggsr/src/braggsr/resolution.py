@@ -74,9 +74,13 @@ def horizontal_image_processing(bw:np.ndarray, h_scale_factor: int, blocksize: i
     h_scale_factor: int
         An integer for which to scale (or bin) the processing of the horizontal data. 30 works well for images for the MCP sensor. 
     blocksize: int
-        An integer that specifies the dimensions (square) of the neighborhood for calculating the adaptive threshold. The larger the block, the lower the local resolution,
-        but can better handle image-wide variations in illumination. 
-    c_factor: 
+        An integer that is used by OpenCV's Adpative Threshold program to specify the dimensions (square) of the neighborhood for calculating the adaptive threshold. The larger the block, the lower the local resolution,
+        but can better handle image-wide variations in illumination. Blocksize must be an odd number, greater than 1 (i.e. 3, 5, 15). For small pixel count ROIs, use 3 as 
+        this is the smallest neighborhood and the MCP sensor is relatively low resolution--for radiographs captured with CMOS, larger regions of interest, or for images with 
+        large trans-image illumination gradients, a larger number may be preferable. 
+    c_factor: int
+        An integer that is used by the OpenCV's Adaptive Threshold program to adjust sensitivty to local variations in the 
+
     Returns
     -------
     horizontal: np.ndarray(2D)

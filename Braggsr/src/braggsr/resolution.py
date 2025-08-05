@@ -38,8 +38,11 @@ def nr_normalized_data (data_path:str)->str:
         print ("Image needs",img.dtype,"conversion method")
     return (img)
 
-def data_conversion (img:np.ndarray, alpha:int, beta:int)->np.ndarray:
-    """Takes the image(img) identified in the nr_normalized_data function and converts it from native Float32 to uint8 for compatibility with OpenCV image processing processes. Finally, converts to a true black/white image for highest contrast prior to edge identification. For
+def data_conversion (img:np.ndarray, alpha:int, beta:int, blocksize: int, c_factor:int)->np.ndarray:
+    """
+    Converts image to OpenCV compatible image file type. 
+
+    Takes the image(img) identified in the nr_normalized_data function and converts it from native Float32 to uint8 for compatibility with OpenCV image processing processes. Finally, converts to a true black/white image for highest contrast prior to edge identification. For
     TPX-1 normalized images, alpha is 0, beta is 255 for conversion. 
 
     Parameters
@@ -50,18 +53,35 @@ def data_conversion (img:np.ndarray, alpha:int, beta:int)->np.ndarray:
         A value, between 0 and 255, that sets the floor for color-channel values (grayscale will be converted to RGB valuation with much higher granularity than 16-step grayscale)
     beta: int
         A value, between 0 and 255, that sets the ceiling for color-channel values (grayscale will be converted to RGB valuation with much higher granularity than 16-step grayscale)
-
+    blocksize: int
+        An integer that is used by OpenCV's Adpative Threshold program to specify the dimensions (square) of the neighborhood for calculating the adaptive threshold. The larger the block, the lower the local resolution,
+        but can better handle image-wide variations in illumination. Blocksize must be an odd number, greater than 1 (i.e. 3, 5, 15). For small pixel count ROIs, use 3 as 
+        this is the smallest neighborhood and the MCP sensor is relatively low resolution--for radiographs captured with CMOS, larger regions of interest, or for images with 
+        large trans-image illumination gradients, a larger number may be preferable. 
+    c_factor: int
+        An integer that is used by the OpenCV's Adaptive Threshold program to adjust sensitivty to local variations in the illumination by subtracting this value from the mean of the
+        neighborhood pixel avg illumination value. For images with low local (neighborhood) values, recommend values closer to 0; for instance, those of the USAF 1957 Gd grid have low
+        neighborhood illumination contrast across most neighborhoods, so values closer to zero yield the best results. 
     Returns
     -------
     bw: np.ndarray (2D)
         A uint8-type ndarray compatible with OpenCV image processing techniques used to increase contrast and resolution 
+    blocksize: int
+        An integer that is used by OpenCV's Adpative Threshold program to specify the dimensions (square) of the neighborhood for calculating the adaptive threshold. The larger the block, the lower the local resolution,
+        but can better handle image-wide variations in illumination. Blocksize must be an odd number, greater than 1 (i.e. 3, 5, 15). For small pixel count ROIs, use 3 as 
+        this is the smallest neighborhood and the MCP sensor is relatively low resolution--for radiographs captured with CMOS, larger regions of interest, or for images with 
+        large trans-image illumination gradients, a larger number may be preferable. 
+    c_factor: int
+        An integer that is used by the OpenCV's Adaptive Threshold program to adjust sensitivty to local variations in the illumination by subtracting this value from the mean of the
+        neighborhood pixel avg illumination value. For images with low local (neighborhood) values, recommend values closer to 0; for instance, those of the USAF 1957 Gd grid have low
+        neighborhood illumination contrast across most neighborhoods, so values closer to zero yield the best results. 
     """
     gray = cv.bitwise_not(img)
     cv.normalize(gray, gray, alpha, beta, norm_type=cv.NORM_MINMAX)
     gray_8bit =cv.convertScaleAbs(gray)
     #Replots in true B/W -- notice introduction of artifacts
-    bw = cv.adaptiveThreshold(gray_8bit, 255, cv.ADAPTIVE_THRESH_MEAN_C, cv.THRESH_BINARY, 15, -2)
-    return (bw)
+    bw = cv.adaptiveThreshold(gray_8bit, 255, cv.ADAPTIVE_THRESH_MEAN_C, cv.THRESH_BINARY, blocksize, c_factor)
+    return (bw, blocksize, c_factor)
     
 def horizontal_image_processing(bw:np.ndarray, h_scale_factor: int, blocksize: int, c_factor: int)->np.ndarray:
     """Takes the black and white, uint8 type image (bw) and processes its horizontal features to increase contrast using OpenCV's erosion and dilation techniques. Introduces some smoothing (cv.blur) at the end in order to finalize contrast and reduce noise at edges prior to Canny Edge
@@ -79,12 +99,23 @@ def horizontal_image_processing(bw:np.ndarray, h_scale_factor: int, blocksize: i
         this is the smallest neighborhood and the MCP sensor is relatively low resolution--for radiographs captured with CMOS, larger regions of interest, or for images with 
         large trans-image illumination gradients, a larger number may be preferable. 
     c_factor: int
-        An integer that is used by the OpenCV's Adaptive Threshold program to adjust sensitivty to local variations in the 
+        An integer that is used by the OpenCV's Adaptive Threshold program to adjust sensitivty to local variations in the illumination by subtracting this value from the mean of the
+        neighborhood pixel avg illumination value. For images with low local (neighborhood) values, recommend values closer to 0; for instance, those of the USAF 1957 Gd grid have low
+        neighborhood illumination contrast across most neighborhoods, so values closer to zero yield the best results. 
 
     Returns
     -------
     horizontal: np.ndarray(2D)
-        The horizontal portions of the image, eroded, dilated, and then smoothed in order to increase contrast and resolution of the edges for follow-on Canny edge detection 
+        The horizontal portions of the image, eroded, dilated, and then smoothed in order to increase contrast and resolution of the edges for follow-on Canny edge detection
+    blocksize: int
+        An integer that is used by OpenCV's Adpative Threshold program to specify the dimensions (square) of the neighborhood for calculating the adaptive threshold. The larger the block, the lower the local resolution,
+        but can better handle image-wide variations in illumination. Blocksize must be an odd number, greater than 1 (i.e. 3, 5, 15). For small pixel count ROIs, use 3 as 
+        this is the smallest neighborhood and the MCP sensor is relatively low resolution--for radiographs captured with CMOS, larger regions of interest, or for images with 
+        large trans-image illumination gradients, a larger number may be preferable. 
+    c_factor: int
+        An integer that is used by the OpenCV's Adaptive Threshold program to adjust sensitivty to local variations in the illumination by subtracting this value from the mean of the
+        neighborhood pixel avg illumination value. For images with low local (neighborhood) values, recommend values closer to 0; for instance, those of the USAF 1957 Gd grid have low
+        neighborhood illumination contrast across most neighborhoods, so values closer to zero yield the best results. 
     """
     horizontal = np.copy(bw)
     #horizontal processing -- separates and saves horizontal features
@@ -101,9 +132,9 @@ def horizontal_image_processing(bw:np.ndarray, h_scale_factor: int, blocksize: i
     smooth = cv.blur(smooth, (2,2))
     (rows,cols) = np.where(H_edges != 0)
     horizontal [rows,cols] = smooth[rows, cols]
-    return (horizontal, h_scale_factor)
+    return (horizontal, h_scale_factor, blocksize, c_factor)
 
-def vert_image_processing(bw:np.ndarray,h_scale_factor:int )->np.ndarray:
+def vert_image_processing(bw:np.ndarray, h_scale_factor:int, blocksize: int, c_factor: int)->np.ndarray:
     """Takes the black and white, uint8 type image (bw) and processes its vertical features to increase contrast using OpenCV's erosion and dilation techniques. Introduces some smoothing (cv.blur) at the end in order to finalize contrast and reduce noise at edges prior to Canny Edge
     detection technique being introduced to processed image.
 
@@ -114,10 +145,28 @@ def vert_image_processing(bw:np.ndarray,h_scale_factor:int )->np.ndarray:
     h_scale_factor: int
         An integer for which to scale (or bin) the processing of the horizontal data. 30 works well for images for the MCP sensor. Please
         note that this may need to be changed if the image is not square (i.e. m x n pixels where m =/= n). 
+    blocksize: int
+        An integer that is used by OpenCV's Adpative Threshold program to specify the dimensions (square) of the neighborhood for calculating the adaptive threshold. The larger the block, the lower the local resolution,
+        but can better handle image-wide variations in illumination. Blocksize must be an odd number, greater than 1 (i.e. 3, 5, 15). For small pixel count ROIs, use 3 as 
+        this is the smallest neighborhood and the MCP sensor is relatively low resolution--for radiographs captured with CMOS, larger regions of interest, or for images with 
+        large trans-image illumination gradients, a larger number may be preferable. 
+    c_factor: int
+        An integer that is used by the OpenCV's Adaptive Threshold program to adjust sensitivty to local variations in the illumination by subtracting this value from the mean of the
+        neighborhood pixel avg illumination value. For images with low local (neighborhood) values, recommend values closer to 0; for instance, those of the USAF 1957 Gd grid have low
+        neighborhood illumination contrast across most neighborhoods, so values closer to zero yield the best results. 
     Returns
     -------
     vertical: np.ndarray(2D)
         The vertical portions of the image, eroded, dilated, and then smoothed in order to increase contrast and resolution of the edges for follow-on Canny edge detection 
+    blocksize: int
+        An integer that is used by OpenCV's Adpative Threshold program to specify the dimensions (square) of the neighborhood for calculating the adaptive threshold. The larger the block, the lower the local resolution,
+        but can better handle image-wide variations in illumination. Blocksize must be an odd number, greater than 1 (i.e. 3, 5, 15). For small pixel count ROIs, use 3 as 
+        this is the smallest neighborhood and the MCP sensor is relatively low resolution--for radiographs captured with CMOS, larger regions of interest, or for images with 
+        large trans-image illumination gradients, a larger number may be preferable. 
+    c_factor: int
+        An integer that is used by the OpenCV's Adaptive Threshold program to adjust sensitivty to local variations in the illumination by subtracting this value from the mean of the
+        neighborhood pixel avg illumination value. For images with low local (neighborhood) values, recommend values closer to 0; for instance, those of the USAF 1957 Gd grid have low
+        neighborhood illumination contrast across most neighborhoods, so values closer to zero yield the best results. 
     """
     #vertical processing -- separates and saves vertical features
     vertical = np.copy(bw)

@@ -84,7 +84,10 @@ def data_conversion (img:np.ndarray, alpha:int, beta:int, blocksize: int, c_fact
     return (bw, blocksize, c_factor)
     
 def horizontal_image_processing(bw:np.ndarray, h_scale_factor: int, blocksize: int, c_factor: int)->np.ndarray:
-    """Takes the black and white, uint8 type image (bw) and processes its horizontal features to increase contrast using OpenCV's erosion and dilation techniques. Introduces some smoothing (cv.blur) at the end in order to finalize contrast and reduce noise at edges prior to Canny Edge
+    """
+    Processes horizontal portions of image to enable better edge detection.
+
+    Takes the black and white, uint8 type image (bw) and processes its horizontal features to increase contrast using OpenCV's erosion and dilation techniques. Introduces some smoothing (cv.blur) at the end in order to finalize contrast and reduce noise at edges prior to Canny Edge
     detection technique being introduced to processed image.  
 
     Parameters
@@ -135,7 +138,10 @@ def horizontal_image_processing(bw:np.ndarray, h_scale_factor: int, blocksize: i
     return (horizontal, h_scale_factor, blocksize, c_factor)
 
 def vert_image_processing(bw:np.ndarray, h_scale_factor:int, blocksize: int, c_factor: int)->np.ndarray:
-    """Takes the black and white, uint8 type image (bw) and processes its vertical features to increase contrast using OpenCV's erosion and dilation techniques. Introduces some smoothing (cv.blur) at the end in order to finalize contrast and reduce noise at edges prior to Canny Edge
+    """
+    Processes the vertical portions of the image to enable better edge detection.
+
+    Takes the black and white, uint8 type image (bw) and processes its vertical features to increase contrast using OpenCV's erosion and dilation techniques. Introduces some smoothing (cv.blur) at the end in order to finalize contrast and reduce noise at edges prior to Canny Edge
     detection technique being introduced to processed image.
 
     Parameters
@@ -190,7 +196,10 @@ def vert_image_processing(bw:np.ndarray, h_scale_factor:int, blocksize: int, c_f
     #print (vertical.shape)
 
 def imagine_recombine(horizontal:np.ndarray, alpha:float, vertical:np.ndarray, beta:float)->np.ndarray:    
-    """Recombines the horizontal and vertical processed images into a single image using OpenCV weighted image stacking method (addWeighted)
+    """
+    Recombines horizontal and vertical images prior to processing.
+
+    Recombines the horizontal and vertical processed images into a single image using OpenCV weighted image stacking method (addWeighted)
 
     Parameters
     ----------
@@ -217,7 +226,10 @@ def imagine_recombine(horizontal:np.ndarray, alpha:float, vertical:np.ndarray, b
 
 #Defines the ROI and processes the image to detect and identify the edges
 def Canny_edges (recombined_image:np.ndarray, x1:int,y1:int,width1:int, height1:int)->np.ndarray:
-    """Takes in the 2D array recombined_image and conducts the Canny edge detection across the established region of interest (ROI)
+    """
+    Takes in recombined image and performs Canny edge detection.
+
+    Takes in the 2D array recombined_image and conducts the Canny edge detection across the established region of interest (ROI)
 
     Parameters
     ----------
@@ -244,7 +256,10 @@ def Canny_edges (recombined_image:np.ndarray, x1:int,y1:int,width1:int, height1:
 
 #export the edge locations
 def exp_edge_loc (edges:np.ndarray, x1:int, y1:int,file_name_edges:str) -> np.ndarray:
-    """Takes in the 2D edges numpy array for the desired region of interest, identifies the indices of the non-zero row and column elements, combines those two lists
+    """
+    Exports edge locations for further processing. 
+
+    Takes in the 2D edges numpy array for the desired region of interest, identifies the indices of the non-zero row and column elements, combines those two lists
     (rows, columns) into a single 2D array corresponding to the coordinates of an edge pixel, converts those coordinates back to 
     parent image coordinates, and stores coordinates for plotting ROIs across parent image. 
 

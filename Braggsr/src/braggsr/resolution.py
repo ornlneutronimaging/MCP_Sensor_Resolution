@@ -287,7 +287,10 @@ def exp_edge_loc (edges:np.ndarray, x1:int, y1:int,file_name_edges:str) -> np.nd
     return(edge_locations)
 
 def ROI_zones (edge_locations:np.ndarray, x1:int, y1:int, left_range:int, right_range:int, zone_locations_fileName:str)->np.ndarray:
-    """Takes in the edge locations, establishes zones of a desired height and width (default is 9 pixels wide, 1 pixel tall), and saves
+    """
+    Develops and saves zones for determination of edge spread function. 
+
+    Takes in the edge locations, establishes zones of a desired height and width (default is 9 pixels wide, 1 pixel tall), and saves
     boxes as 2D array in which the y-value is steady across the box; output data represents left edge, y1 --> right edge, y1.
 
     Parameters
@@ -325,7 +328,11 @@ def ROI_zones (edge_locations:np.ndarray, x1:int, y1:int, left_range:int, right_
     return(zones, y1, left_lat_lim, right_lat_lim)
 
 def run_fit (zones:np.ndarray, y1:int, left_lat_lim:int, right_lat_lim:int, img:np.ndarray)->str:
-    """Takes in the 2D array zones, the left and right lateral limits for the zone, and a file name. Redefines the image for analysis as the normalized, stacked image without the region of interest. Establishes
+    """
+    Runs each zone through the process of establishing edge spread function, differntiating it, and then comparing fit based on 3 classical curve fitment models
+    to develop best fit. Outputs image spatial resolution. 
+
+    Takes in the 2D array zones, the left and right lateral limits for the zone, and a file name. Redefines the image for analysis as the normalized, stacked image without the region of interest. Establishes
     the "Model" class and the data of interest (r-squared value of fit, full-width/half-maximum values of fit) from the LMFit Gaussian, Lorentzian, and Voigt fit models' internal parameter reports. Finally, analyzes
     the fit parameters, determines the strongest fit of the three based on the r-sqaured values, calls the FWHM value for that model (self-reported in the LMFit model report) and uses that FWHM value to determine sensor 
     spatial resolution. 

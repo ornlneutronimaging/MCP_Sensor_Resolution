@@ -9,6 +9,7 @@ from tifffile.tifffile import imread
 import imageio
 import cv2 as cv
 from lmfit.models import GaussianModel, LorentzianModel, VoigtModel
+
 def nr_normalized_data (data_path:str)->str:
     """
     Checks file path, establishes callable object for normalized data 

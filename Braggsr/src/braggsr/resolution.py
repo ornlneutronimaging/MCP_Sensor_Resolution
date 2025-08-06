@@ -11,7 +11,7 @@ import cv2 as cv
 from lmfit.models import GaussianModel, LorentzianModel, VoigtModel
 def nr_normalized_data (data_path:str)->str:
     """
-    Checks file path, establishes callable object for normalized data. 
+    Checks file path, establishes callable object for normalized data 
 
     Ingests a file, checks the path, runs through tifffile package to convert to numpy array, and then checks the data type to ensure it's compatible with the image processing regime (built for the normalized TimePix 1 file output--32 point floating bit TIF file). If the 
     image is either already a unsigned single channel 8-bit image (uint8) or a completely separate data type, the program will warn of this and then recommend the next step. 
@@ -41,7 +41,7 @@ def nr_normalized_data (data_path:str)->str:
 
 def data_conversion (img: np.ndarray, alpha: int=0, beta: int=255, blocksize: int=15, c_factor: int=0)->tuple:
     """
-    Converts image to OpenCV compatible image file type. 
+    Converts image to OpenCV compatible image file type 
 
     Takes the image(img) identified in the nr_normalized_data function and converts it from native Float32 to uint8 for compatibility with OpenCV image processing processes. Finally, converts to a true black/white image for highest contrast prior to edge identification. For
     TPX-1 normalized images, alpha is 0, beta is 255 for conversion. 
@@ -86,7 +86,7 @@ def data_conversion (img: np.ndarray, alpha: int=0, beta: int=255, blocksize: in
     
 def horizontal_image_processing(bw:np.ndarray, h_scale_factor: int=30, blocksize: int=3, c_factor: int=0, kernel_size: tuple=2,2)->tuple:
     """
-    Processes horizontal portions of image to enable better edge detection.
+    Processes horizontal portions of image to enable better edge detection
 
     Takes the black and white, uint8 type image (bw) and processes its horizontal features to increase contrast using OpenCV's erosion and dilation techniques. Introduces some smoothing (cv.blur) at the end in order to finalize contrast and reduce noise at edges prior to Canny Edge
     detection technique being introduced to processed image.  
@@ -96,7 +96,7 @@ def horizontal_image_processing(bw:np.ndarray, h_scale_factor: int=30, blocksize
     bw: np.ndarray (2D)
         A uint8-type ndarray compatible with OpenCV image processing techniques used to increase contrast and resolution 
     h_scale_factor: int
-        An integer for which to scale (or bin) the processing of the horizontal data. 30 works well for images for the MCP sensor. 
+        An integer for which to scale (or bin) the processing of the horizontal data. 30 works well for images for the MCP sensor 
     blocksize: int
         An integer that is used by OpenCV's Adpative Threshold program to specify the dimensions (square) of the neighborhood for calculating the adaptive threshold. The larger the block, the lower the local resolution,
         but can better handle image-wide variations in illumination. Blocksize must be an odd number, greater than 1 (i.e. 3, 5, 15). For small pixel count ROIs, use 3 as 
@@ -107,7 +107,7 @@ def horizontal_image_processing(bw:np.ndarray, h_scale_factor: int=30, blocksize
         neighborhood pixel avg illumination value. For images with low local (neighborhood) values, recommend values closer to 0; for instance, those of the USAF 1957 Gd grid have low
         neighborhood illumination contrast across most neighborhoods, so values closer to zero yield the best results. 
     kernel_size: tuple
-        Dimensions for the kernel size (matrix notation--columns x rows). Default is set to a square, 2x2 matrix. 
+        Dimensions for the kernel size (matrix notation--columns x rows). Default is set to a square, 2x2 matrix 
 
     Returns
     -------
@@ -148,7 +148,7 @@ def horizontal_image_processing(bw:np.ndarray, h_scale_factor: int=30, blocksize
 
 def vert_image_processing(bw:np.ndarray, h_scale_factor: int=30, blocksize: int=3, c_factor: int=0)->tuple:
     """
-    Processes the vertical portions of the image to enable better edge detection.
+    Processes the vertical portions of the image to enable better edge detection
 
     Takes the black and white, uint8 type image (bw) and processes its vertical features to increase contrast using OpenCV's erosion and dilation techniques. Introduces some smoothing (cv.blur) at the end in order to finalize contrast and reduce noise at edges prior to Canny Edge
     detection technique being introduced to processed image.
@@ -211,7 +211,7 @@ def vert_image_processing(bw:np.ndarray, h_scale_factor: int=30, blocksize: int=
 
 def imagine_recombine(horizontal: np.ndarray, vertical: np.ndarray, alpha: float=.5, beta: float=.5)->np.ndarray:    
     """
-    Recombines horizontal and vertical images prior to processing.
+    Recombines horizontal and vertical images prior to processing
 
     Recombines the horizontal and vertical processed images into a single image using OpenCV weighted image stacking method (addWeighted)
 
@@ -236,7 +236,7 @@ def imagine_recombine(horizontal: np.ndarray, vertical: np.ndarray, alpha: float
 
 def Canny_edges (recombined_image: np.ndarray, x1: int=110,y1: int=100,width1: int=130, height1: int=215, edges_left: int=0, edges_right: int=150)->tuple:
     """
-    Takes in recombined image and performs Canny edge detection.
+    Takes in recombined image and performs Canny edge detection
 
     Takes in the 2D array recombined_image and conducts the Canny edge detection across the established region of interest (ROI)
 
@@ -276,7 +276,7 @@ def Canny_edges (recombined_image: np.ndarray, x1: int=110,y1: int=100,width1: i
 
 def exp_edge_loc (edges:np.ndarray, x1:int, y1:int,file_name_edges:str) -> np.ndarray:
     """
-    Exports edge locations for further processing. 
+    Exports edge locations for further processing 
 
     Takes in the 2D edges numpy array for the desired region of interest, identifies the indices of the non-zero row and column elements, combines those two lists
     (rows, columns) into a single 2D array corresponding to the coordinates of an edge pixel, converts those coordinates back to 
@@ -307,7 +307,7 @@ def exp_edge_loc (edges:np.ndarray, x1:int, y1:int,file_name_edges:str) -> np.nd
 
 def ROI_zones (edge_locations:np.ndarray, x1:int, y1:int, left_range:int, right_range:int, zone_locations_fileName:str)->tuple:
     """
-    Develops and saves zones for determination of edge spread function. 
+    Develops and saves zones for determination of edge spread function 
 
     Takes in the edge locations, establishes zones of a desired height and width (default is 9 pixels wide, 1 pixel tall), and saves
     boxes as 2D array in which the y-value is steady across the box; output data represents left edge, y1 --> right edge, y1.
@@ -337,7 +337,7 @@ def ROI_zones (edge_locations:np.ndarray, x1:int, y1:int, left_range:int, right_
         The left lateral limit of the box defining the ROI (defined as the mid point of the box minus the left range)
     right_lat_limit: int
         The right lateral limit of the box defining the ROI (defined as the mid point of the box plus the right range)
-        
+        ]
     """
     zones=[]
     for (x1,y1) in edge_locations:
@@ -352,7 +352,7 @@ def ROI_zones (edge_locations:np.ndarray, x1:int, y1:int, left_range:int, right_
 def run_fit (zones:np.ndarray, y1:int, left_lat_lim:int, right_lat_lim:int, img:np.ndarray)->tuple:
     """
     Runs each zone through the process of establishing edge spread function, differntiating it, and then comparing fit based on 3 classical curve fitment models
-    to develop best fit. Outputs image spatial resolution. 
+    to develop best fit and outputs image spatial resolution. 
 
     Takes in the 2D array zones, the left and right lateral limits for the zone, and a file name. Redefines the image for analysis as the normalized, stacked image without the region of interest. Establishes
     the "Model" class and the data of interest (r-squared value of fit, full-width/half-maximum values of fit) from the LMFit Gaussian, Lorentzian, and Voigt fit models' internal parameter reports. Finally, analyzes

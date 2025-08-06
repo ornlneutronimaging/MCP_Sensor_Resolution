@@ -1,5 +1,6 @@
-"""Resolution is a module that determines neutron radiography spatial resolution through automated edge identification and
-establishment of the line spread function full width, half maximum value"""
+"""Resolution is a module that determines neutron radiography spatial resolution through automated Canny edge identification and
+establishment of the line spread function full width, half maximum value, which is then converted to spatial resolution. Currently optimized for radiographs taken with the 
+TimePix1 MCP sensor at VENUS (BL-10). """
 
 import os 
 import numpy as np
@@ -38,7 +39,7 @@ def nr_normalized_data (data_path:str)->str:
         print ("Image needs",img.dtype,"conversion method")
     return (img)
 
-def data_conversion (img:np.ndarray, alpha:int, beta:int, blocksize: int, c_factor:int)->np.ndarray:
+def data_conversion (img: np.ndarray, alpha: int=0, beta: int=255, blocksize: int=15, c_factor: int=0)->tuple:
     """
     Converts image to OpenCV compatible image file type. 
 
@@ -83,7 +84,7 @@ def data_conversion (img:np.ndarray, alpha:int, beta:int, blocksize: int, c_fact
     bw = cv.adaptiveThreshold(gray_8bit, 255, cv.ADAPTIVE_THRESH_MEAN_C, cv.THRESH_BINARY, blocksize, c_factor)
     return (bw, blocksize, c_factor)
     
-def horizontal_image_processing(bw:np.ndarray, h_scale_factor: int, blocksize: int, c_factor: int)->np.ndarray:
+def horizontal_image_processing(bw:np.ndarray, h_scale_factor: int=30, blocksize: int=3, c_factor: int=0, kernel_size: tuple=2,2)->tuple:
     """
     Processes horizontal portions of image to enable better edge detection.
 
@@ -105,11 +106,16 @@ def horizontal_image_processing(bw:np.ndarray, h_scale_factor: int, blocksize: i
         An integer that is used by the OpenCV's Adaptive Threshold program to adjust sensitivty to local variations in the illumination by subtracting this value from the mean of the
         neighborhood pixel avg illumination value. For images with low local (neighborhood) values, recommend values closer to 0; for instance, those of the USAF 1957 Gd grid have low
         neighborhood illumination contrast across most neighborhoods, so values closer to zero yield the best results. 
+    kernel_size: tuple
+        Dimensions for the kernel size (matrix notation--columns x rows). Default is set to a square, 2x2 matrix. 
 
     Returns
     -------
+    tuple[
     horizontal: np.ndarray(2D)
         The horizontal portions of the image, eroded, dilated, and then smoothed in order to increase contrast and resolution of the edges for follow-on Canny edge detection
+    h_scale_factor: int
+        An integer for which to scale (or bin) the processing of the horizontal data. 30 works well for images for the MCP sensor. 
     blocksize: int
         An integer that is used by OpenCV's Adpative Threshold program to specify the dimensions (square) of the neighborhood for calculating the adaptive threshold. The larger the block, the lower the local resolution,
         but can better handle image-wide variations in illumination. Blocksize must be an odd number, greater than 1 (i.e. 3, 5, 15). For small pixel count ROIs, use 3 as 
@@ -118,7 +124,10 @@ def horizontal_image_processing(bw:np.ndarray, h_scale_factor: int, blocksize: i
     c_factor: int
         An integer that is used by the OpenCV's Adaptive Threshold program to adjust sensitivty to local variations in the illumination by subtracting this value from the mean of the
         neighborhood pixel avg illumination value. For images with low local (neighborhood) values, recommend values closer to 0; for instance, those of the USAF 1957 Gd grid have low
-        neighborhood illumination contrast across most neighborhoods, so values closer to zero yield the best results. 
+        neighborhood illumination contrast across most neighborhoods, so values closer to zero yield the best results.
+     kernel_size: tuple
+        Dimensions for the kernel size (matrix notation--columns x rows). Default is set to a square, 2x2 matrix. 
+        ] 
     """
     horizontal = np.copy(bw)
     #horizontal processing -- separates and saves horizontal features
@@ -129,15 +138,15 @@ def horizontal_image_processing(bw:np.ndarray, h_scale_factor: int, blocksize: i
     horizontal = cv.dilate(horizontal, horizontalStructure)
     horizontal = cv.bitwise_not(horizontal)
     H_edges = cv.adaptiveThreshold(horizontal, 255, cv.ADAPTIVE_THRESH_MEAN_C, cv.THRESH_BINARY, blocksize, c_factor)
-    kernel = np.ones((2,2),np.uint8)
+    kernel = np.ones((kernel_size),np.uint8)
     H_edges = cv.dilate(H_edges, kernel)
     smooth = np.copy(horizontal)
     smooth = cv.blur(smooth, (2,2))
     (rows,cols) = np.where(H_edges != 0)
     horizontal [rows,cols] = smooth[rows, cols]
-    return (horizontal, h_scale_factor, blocksize, c_factor)
+    return (horizontal, h_scale_factor, blocksize, c_factor, kernel_size)
 
-def vert_image_processing(bw:np.ndarray, h_scale_factor:int, blocksize: int, c_factor: int)->np.ndarray:
+def vert_image_processing(bw:np.ndarray, h_scale_factor: int=30, blocksize: int=3, c_factor: int=0)->tuple:
     """
     Processes the vertical portions of the image to enable better edge detection.
 
@@ -162,8 +171,12 @@ def vert_image_processing(bw:np.ndarray, h_scale_factor:int, blocksize: int, c_f
         neighborhood illumination contrast across most neighborhoods, so values closer to zero yield the best results. 
     Returns
     -------
+    tuple[ 
     vertical: np.ndarray(2D)
         The vertical portions of the image, eroded, dilated, and then smoothed in order to increase contrast and resolution of the edges for follow-on Canny edge detection 
+    h_scale_factor: int
+        An integer for which to scale (or bin) the processing of the horizontal data. 30 works well for images for the MCP sensor. Please
+        note that this may need to be changed if the image is not square (i.e. m x n pixels where m =/= n). 
     blocksize: int
         An integer that is used by OpenCV's Adpative Threshold program to specify the dimensions (square) of the neighborhood for calculating the adaptive threshold. The larger the block, the lower the local resolution,
         but can better handle image-wide variations in illumination. Blocksize must be an odd number, greater than 1 (i.e. 3, 5, 15). For small pixel count ROIs, use 3 as 
@@ -173,6 +186,7 @@ def vert_image_processing(bw:np.ndarray, h_scale_factor:int, blocksize: int, c_f
         An integer that is used by the OpenCV's Adaptive Threshold program to adjust sensitivty to local variations in the illumination by subtracting this value from the mean of the
         neighborhood pixel avg illumination value. For images with low local (neighborhood) values, recommend values closer to 0; for instance, those of the USAF 1957 Gd grid have low
         neighborhood illumination contrast across most neighborhoods, so values closer to zero yield the best results. 
+        ]
     """
     #vertical processing -- separates and saves vertical features
     vertical = np.copy(bw)
@@ -182,20 +196,20 @@ def vert_image_processing(bw:np.ndarray, h_scale_factor:int, blocksize: int, c_f
     vertical = cv.erode(vertical, verticalStructure)
     vertical = cv.dilate(vertical, verticalStructure)
     vertical = cv.bitwise_not(vertical)
-    V_edges = cv.adaptiveThreshold(vertical, 255, cv.ADAPTIVE_THRESH_MEAN_C, cv.THRESH_BINARY, 3, -2)
+    V_edges = cv.adaptiveThreshold(vertical, 255, cv.ADAPTIVE_THRESH_MEAN_C, cv.THRESH_BINARY, blocksize, c_factor)
     kernel = np.ones((2,2),np.uint8)
     V_edges = cv.dilate(V_edges, kernel)
     smooth = np.copy(vertical)
     smooth = cv.blur(smooth, (2,2))
     (rows,cols) = np.where(V_edges != 0)
     vertical [rows,cols] = smooth[rows, cols]
-    return(vertical)
+    return(vertical,h_scale_factor, blocksize, c_factor)
     #Recombines the horizontal and vertical images into a single processed and edge-optimized image using 
     #OpenCV "addWeighted" function
     #print (horizontal.shape)
     #print (vertical.shape)
 
-def imagine_recombine(horizontal:np.ndarray, alpha:float, vertical:np.ndarray, beta:float)->np.ndarray:    
+def imagine_recombine(horizontal: np.ndarray, vertical: np.ndarray, alpha: float=.5, beta: float=.5)->np.ndarray:    
     """
     Recombines horizontal and vertical images prior to processing.
 
@@ -217,15 +231,10 @@ def imagine_recombine(horizontal:np.ndarray, alpha:float, vertical:np.ndarray, b
     recombined_image: np.ndarray (2D)
         Agglomerated 2D array representing the weighted values of the horizontal image with the vertical image weight superimposed 
     """
-    #alpha = .5
-    #beta = 1-alpha
     recombined_image = cv.addWeighted(horizontal, alpha, vertical, beta, 0.0)
-    #plt.imshow (combined_image)
-    #plt.colorbar ()
     return (recombined_image)
 
-#Defines the ROI and processes the image to detect and identify the edges
-def Canny_edges (recombined_image:np.ndarray, x1:int,y1:int,width1:int, height1:int)->np.ndarray:
+def Canny_edges (recombined_image: np.ndarray, x1: int=110,y1: int=100,width1: int=130, height1: int=215, edges_left: int=0, edges_right: int=150)->tuple:
     """
     Takes in recombined image and performs Canny edge detection.
 
@@ -243,18 +252,28 @@ def Canny_edges (recombined_image:np.ndarray, x1:int,y1:int,width1:int, height1:
         The width of the desired region of interest 
     height1: int
         The height for the desired region of interest 
+    edges_left: int
+        Left edge of Canny edge detection region of analysis; tells the OpenCV Canny edge detection what is the farthest left to look for edges
+    edges_right: int
+        Right edge of Canny edge detection region of analysis; tells the Open CV Canny edge detection what is the farthest right to look for edges (useful if there is an
+        issue with the image or sensor that you want to avoid doing analysis on)
     
     Returns
     -------
+    tuple [
     edges: np.ndarray (2D)
         All identified edges in the desired region of interest highlighted and stores in 2D numpy array with spans for regions of interest
+     x1: int
+        The left-most horizontal position for the desired region of interest
+    y1: int
+        The uppermost (closest to the origin--image is plotted in 3rd quadrant as abs (x,y)) vertical position for the desired region of interest 
+        ]
     """
-    #x1,y1,width1,height1 =  110,100,130,215
+    
     roi_1=recombined_image[y1:y1+height1,x1:x1+width1]
-    edges=cv.Canny(roi_1,0,150)
+    edges=cv.Canny(roi_1,edges_left,edges_right)
     return (edges, x1, y1)
 
-#export the edge locations
 def exp_edge_loc (edges:np.ndarray, x1:int, y1:int,file_name_edges:str) -> np.ndarray:
     """
     Exports edge locations for further processing. 
@@ -286,7 +305,7 @@ def exp_edge_loc (edges:np.ndarray, x1:int, y1:int,file_name_edges:str) -> np.nd
     np.savetxt(file_name_edges, edge_locations, fmt='%d', header = "Row, Column")
     return(edge_locations)
 
-def ROI_zones (edge_locations:np.ndarray, x1:int, y1:int, left_range:int, right_range:int, zone_locations_fileName:str)->np.ndarray:
+def ROI_zones (edge_locations:np.ndarray, x1:int, y1:int, left_range:int, right_range:int, zone_locations_fileName:str)->tuple:
     """
     Develops and saves zones for determination of edge spread function. 
 
@@ -309,13 +328,17 @@ def ROI_zones (edge_locations:np.ndarray, x1:int, y1:int, left_range:int, right_
     
     Returns
     -------
+    tuple [
     zones: np.ndarray (2D)
-        Saves a 2D array with the zones as a series of boxes that have a single y value and x values that span from left to right lateral limits 
-
+            Saves a 2D array with the zones as a series of boxes that have a single y value and x values that span from left to right lateral limits 
+    y1: int
+        The uppermost (closest to the origin--image is plotted in 3rd quadrant as abs (x,y)) vertical position for the desired region of interest 
+    left_lat_lim: int
+        The left lateral limit of the box defining the ROI (defined as the mid point of the box minus the left range)
+    right_lat_limit: int
+        The right lateral limit of the box defining the ROI (defined as the mid point of the box plus the right range)
+        
     """
-    #box_width = 9
-    #left_range = 5
-    #right_range = 3
     zones=[]
     for (x1,y1) in edge_locations:
         left_lat_lim=x1-left_range
@@ -323,11 +346,10 @@ def ROI_zones (edge_locations:np.ndarray, x1:int, y1:int, left_range:int, right_
         zone=(left_lat_lim,y1, right_lat_lim, y1)
         zones.append(zone)
     zones = np.array(zones)
-    #print(boxes)
     np.savetxt(zone_locations_fileName, zones, fmt='%d', header = "Row, Column")
     return(zones, y1, left_lat_lim, right_lat_lim)
 
-def run_fit (zones:np.ndarray, y1:int, left_lat_lim:int, right_lat_lim:int, img:np.ndarray)->str:
+def run_fit (zones:np.ndarray, y1:int, left_lat_lim:int, right_lat_lim:int, img:np.ndarray)->tuple:
     """
     Runs each zone through the process of establishing edge spread function, differntiating it, and then comparing fit based on 3 classical curve fitment models
     to develop best fit. Outputs image spatial resolution. 
@@ -353,8 +375,13 @@ def run_fit (zones:np.ndarray, y1:int, left_lat_lim:int, right_lat_lim:int, img:
 
     Returns
     -------
-    str
-        Print statements detailing the data sample size, average resolution and spatial resolution of the sensor, and the standard deviation of the data set as a measure of the strength of the data correlation 
+    tuple [
+    average_fwhm: int
+        The average value of the full-width, half-maximums for the agglomerated curve-fits for all runs with a R^2 value of >.9. Value is in units of pixels (px).
+    spatial_resolution: int
+        The fwhm value for all runs calculated from pixel value to spatial resolution (mm) using a sensor stated maximum theoretical resolution of .055mm.
+        ]
+        
     """
     #Saves and iterates all saved ROIs through the resolution script
     image=imageio.imread(img)
@@ -427,7 +454,7 @@ def run_fit (zones:np.ndarray, y1:int, left_lat_lim:int, right_lat_lim:int, img:
         spatial_resolution = .055 *average_fwhm #mm
         print ("The sample size of the calculation was", (len(results_dict)),",using data with R^2 value in excess of .9.")
         print (f"The average resolution across the ROI is {average_fwhm:.8f} pixels, or {spatial_resolution:.8f} mm. Data-set standard deviation was {std_dev_FWHM:.8f}.")
-
+        return (average_fwhm, spatial_resolution)
 
 
 

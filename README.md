@@ -13,4 +13,4 @@ theoretical spatial resolution) to obtain the empirical spatial resolution.
 
 This program draws on several other programs, to include making heavy use of image processing modules from OpenCV and curve fitting approximations from LMFit. 
 
-Research for th
+

@@ -125,7 +125,7 @@ def horizontal_image_processing(bw:np.ndarray, h_scale_factor: int=30, blocksize
         large trans-image illumination gradients, a larger number may be preferable. 
     c_factor: int
         An integer that is used by the OpenCV's Adaptive Threshold program to adjust sensitivty to local variations in the illumination by subtracting this value from the mean of the
-        neighborhood pixel avg illumination value. For images with low local (neighborhood) values, recommend values closer to 0; for instance, those of the USAF 1957 Gd grid have low
+        neighborhood pixel avg illumination value. For images with low local (neighborhood) values, recommend values closer to 0; for instance, those of the internal Gd test grid have low
         neighborhood illumination contrast across most neighborhoods, so values closer to zero yield the best results.
      kernel_size: tuple
         Dimensions for the kernel size (matrix notation--columns x rows). Default is set to a square, 2x2 matrix. 
@@ -148,7 +148,7 @@ def horizontal_image_processing(bw:np.ndarray, h_scale_factor: int=30, blocksize
     horizontal [rows,cols] = smooth[rows, cols]
     return (horizontal, h_scale_factor, blocksize, c_factor, kernel_size)
 
-def vert_image_processing(bw:np.ndarray, h_scale_factor: int=30, blocksize: int=3, c_factor: int=0)->tuple:
+def vert_image_processing(bw:np.ndarray, h_scale_factor: int=30, blocksize: int=3, c_factor: int=0, kernel_size: tuple=(2,2))->tuple:
     """
     Processes the vertical portions of the image to enable better edge detection
 
@@ -171,6 +171,8 @@ def vert_image_processing(bw:np.ndarray, h_scale_factor: int=30, blocksize: int=
         An integer that is used by the OpenCV's Adaptive Threshold program to adjust sensitivty to local variations in the illumination by subtracting this value from the mean of the
         neighborhood pixel avg illumination value. For images with low local (neighborhood) values, recommend values closer to 0; for instance, those of the USAF 1957 Gd grid have low
         neighborhood illumination contrast across most neighborhoods, so values closer to zero yield the best results. 
+    kernel_size: tuple
+        Dimensions for the kernel size (matrix notation--columns x rows). Default is set to a square, 2x2 matrix 
     Returns
     -------
     tuple[ 
@@ -186,7 +188,7 @@ def vert_image_processing(bw:np.ndarray, h_scale_factor: int=30, blocksize: int=
         large trans-image illumination gradients, a larger number may be preferable. 
     c_factor: int
         An integer that is used by the OpenCV's Adaptive Threshold program to adjust sensitivty to local variations in the illumination by subtracting this value from the mean of the
-        neighborhood pixel avg illumination value. For images with low local (neighborhood) values, recommend values closer to 0; for instance, those of the USAF 1957 Gd grid have low
+        neighborhood pixel avg illumination value. For images with low local (neighborhood) values, recommend values closer to 0; for instance, those of the internal Gd test grid have low
         neighborhood illumination contrast across most neighborhoods, so values closer to zero yield the best results. 
         ]
     """
@@ -199,7 +201,7 @@ def vert_image_processing(bw:np.ndarray, h_scale_factor: int=30, blocksize: int=
     vertical = cv.dilate(vertical, verticalStructure)
     vertical = cv.bitwise_not(vertical)
     V_edges = cv.adaptiveThreshold(vertical, 255, cv.ADAPTIVE_THRESH_MEAN_C, cv.THRESH_BINARY, blocksize, c_factor)
-    kernel = np.ones((2,2),np.uint8)
+    kernel = np.ones((kernel_size),np.uint8)
     V_edges = cv.dilate(V_edges, kernel)
     smooth = np.copy(vertical)
     smooth = cv.blur(smooth, (2,2))

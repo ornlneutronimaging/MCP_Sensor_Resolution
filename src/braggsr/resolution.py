@@ -11,7 +11,7 @@ import cv2 as cv
 from lmfit.models import GaussianModel, LorentzianModel, VoigtModel
 from typing import Tuple
 
-def nr_normalized_data (data_path:str)->np.ndarray:
+def nr_normalized_data (data_path:str)->Tuple:
     """
     Checks file path, establishes callable object for normalized data 
 
@@ -28,9 +28,9 @@ def nr_normalized_data (data_path:str)->np.ndarray:
     img: np.ndarray (2D)
         The image, as a callable numpy N-dimensional array (2D), identified with a print statement affirming it is either 1) in need of conversion from Float32 to uint8, 2) it is already formatted as a uint8 data type and so doesn't need conversion, or
         3) is another non-compatible type that will need further conversion. Note: ALL TimePix-1 normalized images *should* be natively Float32 TIFFs.
+    data_path: str
+        The file path for the normalized image-file should be 32-bit floating point TIF file
     """ 
-    assert os.path.exists(data_path)
-    #display file dimension and data type (determine whether file is Float 32 and needs to be converted to uint8 [single channel unsigned])
     img = imread(data_path)
     if img.dtype == "float32":
         print ("Image needs processing")
@@ -39,9 +39,9 @@ def nr_normalized_data (data_path:str)->np.ndarray:
         print ("Image does not need further conversion--skip to horizontal_image_processing function")
     else:
         print ("Image needs",img.dtype,"conversion method")
-    return (img)
+    return (img, data_path)
 
-def data_conversion (img: np.ndarray, alpha: int=0, beta: int=255, blocksize: int=15, c_factor: int=0)->tuple:
+def data_conversion (img: np.ndarray, alpha: int=0, beta: int=255, blocksize: int=15, c_factor: int=0)->Tuple [np.ndarray, int, int]:
     """
     Converts image to OpenCV compatible image file type 
 
@@ -86,7 +86,7 @@ def data_conversion (img: np.ndarray, alpha: int=0, beta: int=255, blocksize: in
     bw = cv.adaptiveThreshold(gray_8bit, 255, cv.ADAPTIVE_THRESH_MEAN_C, cv.THRESH_BINARY, blocksize, c_factor)
     return (bw, blocksize, c_factor)
 
-def horizontal_image_processing(bw:np.ndarray, h_scale_factor: int=30, blocksize: int=3, c_factor: int=0, kernel_size: tuple=(2,2))->tuple:
+def horizontal_image_processing(bw:np.ndarray, h_scale_factor: int=30, blocksize: int=3, c_factor: int=0, kernel_size: tuple=(2,2))->Tuple [np.ndarray, int, int, int, Tuple]:
     """
     Processes horizontal portions of image to enable better edge detection
 
@@ -148,7 +148,7 @@ def horizontal_image_processing(bw:np.ndarray, h_scale_factor: int=30, blocksize
     horizontal [rows,cols] = smooth[rows, cols]
     return (horizontal, h_scale_factor, blocksize, c_factor, kernel_size)
 
-def vert_image_processing(bw:np.ndarray, h_scale_factor: int=30, blocksize: int=3, c_factor: int=0, kernel_size: tuple=(2,2))->tuple:
+def vert_image_processing(bw:np.ndarray, h_scale_factor: int=30, blocksize: int=3, c_factor: int=0, kernel_size: tuple=(2,2))->Tuple [np.ndarray, int, int, int]:
     """
     Processes the vertical portions of the image to enable better edge detection
 
@@ -190,6 +190,8 @@ def vert_image_processing(bw:np.ndarray, h_scale_factor: int=30, blocksize: int=
         An integer that is used by the OpenCV's Adaptive Threshold program to adjust sensitivty to local variations in the illumination by subtracting this value from the mean of the
         neighborhood pixel avg illumination value. For images with low local (neighborhood) values, recommend values closer to 0; for instance, those of the internal Gd test grid have low
         neighborhood illumination contrast across most neighborhoods, so values closer to zero yield the best results. 
+     kernel_size: tuple
+        Dimensions for the kernel size (matrix notation--columns x rows). Default is set to a square, 2x2 matrix. 
         ]
     """
     #vertical processing -- separates and saves vertical features
@@ -207,13 +209,13 @@ def vert_image_processing(bw:np.ndarray, h_scale_factor: int=30, blocksize: int=
     smooth = cv.blur(smooth, (2,2))
     (rows,cols) = np.where(V_edges != 0)
     vertical [rows,cols] = smooth[rows, cols]
-    return(vertical,h_scale_factor, blocksize, c_factor)
+    return(vertical,h_scale_factor, blocksize, c_factor, kernel_size)
     #Recombines the horizontal and vertical images into a single processed and edge-optimized image using 
     #OpenCV "addWeighted" function
     #print (horizontal.shape)
     #print (vertical.shape)
 
-def imagine_recombine(horizontal: np.ndarray, vertical: np.ndarray, alpha: float=.5, beta: float=.5)->np.ndarray:    
+def image_recombine(horizontal: np.ndarray, vertical: np.ndarray, alpha: float=.5, beta: float=.5)->np.ndarray:    
     """
     Recombines horizontal and vertical images prior to processing
 
@@ -238,7 +240,7 @@ def imagine_recombine(horizontal: np.ndarray, vertical: np.ndarray, alpha: float
     recombined_image = cv.addWeighted(horizontal, alpha, vertical, beta, 0.0)
     return (recombined_image)
 
-def Canny_edges (recombined_image: np.ndarray, x1: int=110,y1: int=100,width1: int=130, height1: int=215, edges_left: int=0, edges_right: int=150)->tuple:
+def Canny_edges (recombined_image: np.ndarray, x1: int=110,y1: int=100, width1: int=130, height1: int=215, edges_left: int=0, edges_right: int=150)->Tuple [np.ndarray, int, int]:
     """
     Takes in recombined image and performs Canny edge detection
 
@@ -267,7 +269,7 @@ def Canny_edges (recombined_image: np.ndarray, x1: int=110,y1: int=100,width1: i
     tuple [
     edges: np.ndarray (2D)
         All identified edges in the desired region of interest highlighted and stores in 2D numpy array with spans for regions of interest
-     x1: int
+    x1: int
         The left-most horizontal position for the desired region of interest
     y1: int
         The uppermost (closest to the origin--image is plotted in 3rd quadrant as abs (x,y)) vertical position for the desired region of interest 
@@ -278,7 +280,7 @@ def Canny_edges (recombined_image: np.ndarray, x1: int=110,y1: int=100,width1: i
     edges=cv.Canny(roi_1,edges_left,edges_right)
     return (edges, x1, y1)
 
-def exp_edge_loc (edges:np.ndarray, x1:int, y1:int,file_name_edges:str) -> np.ndarray:
+def exp_edge_loc (edges: np.ndarray, x1: int, y1: int) -> np.ndarray:
     """
     Exports edge locations for further processing 
 
@@ -293,11 +295,9 @@ def exp_edge_loc (edges:np.ndarray, x1:int, y1:int,file_name_edges:str) -> np.nd
     x1: int
         The left-most horizontal position for the desired region of interest
     y1: int
-        The uppermost (closest to the origin--image is plotted in 3rd quadrant as abs (x,y)) vertical position for the desired region of interest 
-    file_name_edges: str
-        Desired output file name 
+        The uppermost (closest to the origin--image is plotted in 3rd quadrant as abs (x,y)) vertical position for the desired region of interest  
 
-    Return
+    Returns
     ------
     edge_locations: np.ndarray (2D)
         A 2D array containing the locations of the edges in the parent image for processing of the resolution function on the parent 
@@ -306,10 +306,9 @@ def exp_edge_loc (edges:np.ndarray, x1:int, y1:int,file_name_edges:str) -> np.nd
     edge_locations = np.column_stack(np.where(edges != 0))
     edge_locations[:,0] += y1
     edge_locations[:,1] += x1
-    np.savetxt(file_name_edges, edge_locations, fmt='%d', header = "Row, Column")
     return(edge_locations)
 
-def ROI_zones (edge_locations:np.ndarray, x1:int, y1:int, left_range:int, right_range:int, zone_locations_fileName:str)->tuple:
+def ROI_zones (edge_locations: np.ndarray, x1: int, y1: int, left_range: int, right_range: int)->Tuple [np.ndarray, int, int, int]:
     """
     Develops and saves zones for determination of edge spread function 
 
@@ -350,12 +349,11 @@ def ROI_zones (edge_locations:np.ndarray, x1:int, y1:int, left_range:int, right_
         zone=(left_lat_lim,y1, right_lat_lim, y1)
         zones.append(zone)
     zones = np.array(zones)
-    np.savetxt(zone_locations_fileName, zones, fmt='%d', header = "Row, Column")
     return(zones, y1, left_lat_lim, right_lat_lim)
 
-def run_fit (zones:np.ndarray, y1:int, left_lat_lim:int, right_lat_lim:int, img:np.ndarray)->Tuple[float, float]:
+def run_fit (zones: np.ndarray, y1: int, left_lat_lim: int, right_lat_lim: int, data_path:str)->Tuple[float, float]:
     """
-    Runs each zone through the process of establishing edge spread function, differntiating it, and then comparing fit based on 3 classical curve fitment models
+    Runs each zone through the process of establishing edge spread function, differentiating it, and then comparing fit based on 3 classical curve fitment models
     to develop best fit and outputs image spatial resolution. 
 
     Takes in the 2D array zones, the left and right lateral limits for the zone, and a file name. Redefines the image for analysis as the normalized, stacked image without the region of interest. Establishes
@@ -373,9 +371,8 @@ def run_fit (zones:np.ndarray, y1:int, left_lat_lim:int, right_lat_lim:int, img:
         The leftmost extent of the zone
     right_lat_limit: int
         The rightmost extent of the zone
-    img: np.ndarray (2D)
-        The image, as a callable numpy N-dimensional array (2D), identified with a print statement affirming it is either 1) in need of conversion from Float32 to uint8, 2) it is already formatted as a uint8 data type and so doesn't need conversion, or
-        3) is another non-compatible type that will need further conversion. Note: ALL TimePix-1 normalized images *should* be natively Float32 TIFFs.
+    data_path: str
+        The file path for the normalized image-file should be 32-bit floating point TIF file
 
     Returns
     -------
@@ -387,8 +384,7 @@ def run_fit (zones:np.ndarray, y1:int, left_lat_lim:int, right_lat_lim:int, img:
         ]
         
     """
-    #Saves and iterates all saved ROIs through the resolution script
-    image=imageio.imread(img)
+    image=imageio.imread(data_path)
     class Model:
         def __init__ (self, name ,r_squared, fwhm):
             self.name = name 
@@ -398,21 +394,17 @@ def run_fit (zones:np.ndarray, y1:int, left_lat_lim:int, right_lat_lim:int, img:
                 return self.r_squared
         def get_fwhm(self):
             return self.fwhm
-    # prepare results container
+
     results_dict = {}  
     for zone in zones:
-        #establishes the zone
         left_lat_lim,y1,right_lat_lim,y1=zone
         roi = image[y1,left_lat_lim:right_lat_lim]
 
-        #converts the ROI to dataframe to follow rest of program
         df_roi = pd.DataFrame(roi, columns=['Intensity'])
         df1 = df_roi["Intensity"]
 
-        #finds derivative of edge spread function using NumPy gradient (small dataset)
         dydxdf = np.gradient(df1, 1)
 
-        #Gaussian fit model
         y = dydxdf
         x = np.arange(len(y))
         mod = GaussianModel()
@@ -421,7 +413,6 @@ def run_fit (zones:np.ndarray, y1:int, left_lat_lim:int, right_lat_lim:int, img:
         r_squared_G=out.rsquared
         FWHM_G=out.params['fwhm'].value
 
-        #Lorentzian fit model
         y = dydxdf
         x = np.arange(len(y))
         mod = LorentzianModel()
@@ -430,7 +421,6 @@ def run_fit (zones:np.ndarray, y1:int, left_lat_lim:int, right_lat_lim:int, img:
         r_squared_L = outL.rsquared
         FWHM_L=outL.params['fwhm'].value
 
-        #Voigt fit model
         y = dydxdf
         x = np.arange(len(y))
         mod = VoigtModel()
@@ -439,23 +429,20 @@ def run_fit (zones:np.ndarray, y1:int, left_lat_lim:int, right_lat_lim:int, img:
         r_squared_V=outV.rsquared
         FWHM_V=outV.params['fwhm'].value
 
-        #Determines best model fit by comparing R-squared values, selects best to determine FWHM value from
         ModelG = Model("Gaussian",r_squared_G,FWHM_G)
         ModelL = Model("Lorentzian", r_squared_L, FWHM_L)
         ModelV = Model("Voigt", r_squared_V, FWHM_V)
         models = [ModelG, ModelL, ModelV]
         best_model = max (models, key=lambda model: model.get_r_squared())
-        pixel_density = .055 *best_model.get_fwhm() #mm
-    
-        # record results
+        #pixel_density = .055 *best_model.get_fwhm() #mm
+
         if best_model.r_squared > 0.9:
             results_dict[(left_lat_lim, y1, right_lat_lim)] = best_model.get_fwhm()
-        #print(results_dict)
         fwhm_values = list(results_dict.values())
         std_dev_FWHM = np.std(fwhm_values)
         if fwhm_values:
             average_fwhm = sum(fwhm_values)/len (fwhm_values)
         spatial_resolution = .055 *average_fwhm #mm
-        print ("The sample size of the calculation was", (len(results_dict)),",using data with R^2 value in excess of .9.")
-        print (f"The average resolution across the ROI is {average_fwhm:.8f} pixels, or {spatial_resolution:.8f} mm. Data-set standard deviation was {std_dev_FWHM:.8f}.")
-        return (average_fwhm, spatial_resolution)
+    print ("The sample size of the calculation was", (len(results_dict)),",using data with R^2 value in excess of .9.")
+    print (f"The average resolution across the ROI is {average_fwhm:.8f} pixels, or {spatial_resolution:.8f} mm. Data-set standard deviation was {std_dev_FWHM:.8f}.")
+    return (average_fwhm, spatial_resolution)

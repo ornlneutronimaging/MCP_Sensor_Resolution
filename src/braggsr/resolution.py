@@ -9,8 +9,9 @@ from tifffile.tifffile import imread
 import imageio
 import cv2 as cv
 from lmfit.models import GaussianModel, LorentzianModel, VoigtModel
+from typing import Tuple
 
-def nr_normalized_data (data_path:str)->str:
+def nr_normalized_data (data_path:str)->np.ndarray:
     """
     Checks file path, establishes callable object for normalized data 
 
@@ -84,8 +85,8 @@ def data_conversion (img: np.ndarray, alpha: int=0, beta: int=255, blocksize: in
     #Replots in true B/W -- notice introduction of artifacts
     bw = cv.adaptiveThreshold(gray_8bit, 255, cv.ADAPTIVE_THRESH_MEAN_C, cv.THRESH_BINARY, blocksize, c_factor)
     return (bw, blocksize, c_factor)
-    
-def horizontal_image_processing(bw:np.ndarray, h_scale_factor: int=30, blocksize: int=3, c_factor: int=0, kernel_size: tuple=2,2)->tuple:
+
+def horizontal_image_processing(bw:np.ndarray, h_scale_factor: int=30, blocksize: int=3, c_factor: int=0, kernel_size: tuple=(2,2))->tuple:
     """
     Processes horizontal portions of image to enable better edge detection
 
@@ -350,7 +351,7 @@ def ROI_zones (edge_locations:np.ndarray, x1:int, y1:int, left_range:int, right_
     np.savetxt(zone_locations_fileName, zones, fmt='%d', header = "Row, Column")
     return(zones, y1, left_lat_lim, right_lat_lim)
 
-def run_fit (zones:np.ndarray, y1:int, left_lat_lim:int, right_lat_lim:int, img:np.ndarray)->tuple:
+def run_fit (zones:np.ndarray, y1:int, left_lat_lim:int, right_lat_lim:int, img:np.ndarray)->Tuple[float, float]:
     """
     Runs each zone through the process of establishing edge spread function, differntiating it, and then comparing fit based on 3 classical curve fitment models
     to develop best fit and outputs image spatial resolution. 
@@ -456,11 +457,3 @@ def run_fit (zones:np.ndarray, y1:int, left_lat_lim:int, right_lat_lim:int, img:
         print ("The sample size of the calculation was", (len(results_dict)),",using data with R^2 value in excess of .9.")
         print (f"The average resolution across the ROI is {average_fwhm:.8f} pixels, or {spatial_resolution:.8f} mm. Data-set standard deviation was {std_dev_FWHM:.8f}.")
         return (average_fwhm, spatial_resolution)
-
-
-
-
-
-
-
-

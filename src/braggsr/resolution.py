@@ -11,7 +11,7 @@ import cv2 as cv
 from lmfit.models import GaussianModel, LorentzianModel, VoigtModel
 from typing import Tuple
 
-def nr_normalized_data (data_path:str)->Tuple:
+def nr_normalized_data (data_path:str)->Tuple [np.ndarray, str]:
     """
     Checks file path, establishes callable object for normalized data 
 
@@ -434,15 +434,13 @@ def run_fit (zones: np.ndarray, y1: int, left_lat_lim: int, right_lat_lim: int, 
         ModelV = Model("Voigt", r_squared_V, FWHM_V)
         models = [ModelG, ModelL, ModelV]
         best_model = max (models, key=lambda model: model.get_r_squared())
-        #pixel_density = .055 *best_model.get_fwhm() #mm
-
         if best_model.r_squared > 0.9:
             results_dict[(left_lat_lim, y1, right_lat_lim)] = best_model.get_fwhm()
-        fwhm_values = list(results_dict.values())
-        std_dev_FWHM = np.std(fwhm_values)
-        if fwhm_values:
-            average_fwhm = sum(fwhm_values)/len (fwhm_values)
-        spatial_resolution = .055 *average_fwhm #mm
+    fwhm_values = list(results_dict.values())
+    std_dev_FWHM = np.std(fwhm_values)
+    if fwhm_values:
+        average_fwhm = sum(fwhm_values)/len(fwhm_values)
+    spatial_resolution = .055 *average_fwhm 
     print ("The sample size of the calculation was", (len(results_dict)),",using data with R^2 value in excess of .9.")
     print (f"The average resolution across the ROI is {average_fwhm:.8f} pixels, or {spatial_resolution:.8f} mm. Data-set standard deviation was {std_dev_FWHM:.8f}.")
     return (average_fwhm, spatial_resolution)

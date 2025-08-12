@@ -98,7 +98,7 @@ def horizontal_image_processing(bw:np.ndarray, h_scale_factor: int=30, blocksize
     bw: np.ndarray (2D)
         A uint8-type ndarray compatible with OpenCV image processing techniques used to increase contrast and resolution 
     h_scale_factor: int
-        An integer for which to scale (or bin) the processing of the horizontal data. 30 works well for higher resolution images for the MCP sensor; however, images taken farther from the sensor (lower resolution) will
+        An integer with which to scale (or bin) the processing of the horizontal data. 30 works well for higher resolution images for the MCP sensor; however, images taken farther from the sensor (lower resolution) will
         benefit from larger h-scale factors (more bins). This is the most important factor to change (likely, increase) as resolution gets lower/distance from the sensor increases. Please note that this may also need to 
         be changed if the image is not square (i.e. m x n pixels where m =/= n). 
     blocksize: int
@@ -119,7 +119,7 @@ def horizontal_image_processing(bw:np.ndarray, h_scale_factor: int=30, blocksize
     horizontal: np.ndarray(2D)
         The horizontal portions of the image, eroded, dilated, and then smoothed in order to increase contrast and resolution of the edges for follow-on Canny edge detection
     h_scale_factor: int
-        An integer for which to scale (or bin) the processing of the horizontal data. 30 works well for higher resolution images for the MCP sensor; however, images taken farther from the sensor (lower resolution) will
+        An integer with which to scale (or bin) the processing of the horizontal data. 30 works well for higher resolution images for the MCP sensor; however, images taken farther from the sensor (lower resolution) will
         benefit from larger h-scale factors (more bins). This is the most important factor to change (likely, increase) as resolution gets lower/distance from the sensor increases. Please note that this may also need to 
         be changed if the image is not square (i.e. m x n pixels where m =/= n). 
     blocksize: int
@@ -164,7 +164,7 @@ def vert_image_processing(bw:np.ndarray, h_scale_factor: int=30, blocksize: int=
     bw: np.ndarray (2D)
         A uint8-type ndarray compatible with OpenCV image processing techniques used to increase contrast and resolution 
     h_scale_factor: int
-        An integer for which to scale (or bin) the processing of the horizontal data. 30 works well for higher resolution images for the MCP sensor; however, images taken farther from the sensor (lower resolution) will
+        An integer with which to scale (or bin) the processing of the horizontal data. 30 works well for higher resolution images for the MCP sensor; however, images taken farther from the sensor (lower resolution) will
         benefit from larger h-scale factors (more bins). This is the most important factor to change (likely, increase) as resolution gets lower/distance from the sensor increases. Please note that this may also need to 
         be changed if the image is not square (i.e. m x n pixels where m =/= n). 
     blocksize: int
@@ -184,7 +184,7 @@ def vert_image_processing(bw:np.ndarray, h_scale_factor: int=30, blocksize: int=
     vertical: np.ndarray(2D)
         The vertical portions of the image, eroded, dilated, and then smoothed in order to increase contrast and resolution of the edges for follow-on Canny edge detection 
     h_scale_factor: int
-        An integer for which to scale (or bin) the processing of the horizontal data. 30 works well for higher resolution images for the MCP sensor; however, images taken farther from the sensor (lower resolution) will
+        An integer with which to scale (or bin) the processing of the horizontal data. 30 works well for higher resolution images for the MCP sensor; however, images taken farther from the sensor (lower resolution) will
         benefit from larger h-scale factors (more bins). This is the most important factor to change (likely, increase) as resolution gets lower/distance from the sensor increases. Please note that this may also need to 
         be changed if the image is not square (i.e. m x n pixels where m =/= n). 
     blocksize: int

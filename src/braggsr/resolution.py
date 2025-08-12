@@ -25,7 +25,7 @@ def nr_normalized_data (data_path:str)->Tuple [np.ndarray, str]:
 
     Returns
     -------
-    img: np.ndarray (2D)
+    img: np.ndarray 
         The image, as a callable numpy N-dimensional array (2D), identified with a print statement affirming it is either 1) in need of conversion from Float32 to uint8, 2) it is already formatted as a uint8 data type and so doesn't need conversion, or
         3) is another non-compatible type that will need further conversion. Note: ALL TimePix-1 normalized images *should* be natively Float32 TIFFs.
     data_path: str
@@ -50,7 +50,7 @@ def data_conversion (img: np.ndarray, alpha: int=0, beta: int=255, blocksize: in
 
     Parameters
     ----------
-    img: np.ndarray (2D)
+    img: np.ndarray 
         The image, as a callable numpy N-dimensional array (2D), formatted in Float32 (native data type for normalized TimePix-1 neutron radiographs)
     alpha: int
         A value, between 0 and 255, that sets the floor for color-channel values (grayscale will be converted to RGB valuation with much higher granularity than 16-step grayscale)
@@ -67,7 +67,7 @@ def data_conversion (img: np.ndarray, alpha: int=0, beta: int=255, blocksize: in
         neighborhood illumination contrast across most neighborhoods, so values closer to zero yield the best results. 
     Returns
     -------
-    bw: np.ndarray (2D)
+    bw: np.ndarray 
         A uint8-type ndarray compatible with OpenCV image processing techniques used to increase contrast and resolution 
     blocksize: int
         An integer that is used by OpenCV's Adpative Threshold program to specify the dimensions (square) of the neighborhood for calculating the adaptive threshold. The larger the block, the lower the local resolution,
@@ -95,7 +95,7 @@ def horizontal_image_processing(bw:np.ndarray, h_scale_factor: int=30, blocksize
 
     Parameters
     ----------
-    bw: np.ndarray (2D)
+    bw: np.ndarray 
         A uint8-type ndarray compatible with OpenCV image processing techniques used to increase contrast and resolution 
     h_scale_factor: int
         An integer with which to scale (or bin) the processing of the horizontal data. 30 works well for higher resolution images for the MCP sensor; however, images taken farther from the sensor (lower resolution) will
@@ -116,7 +116,7 @@ def horizontal_image_processing(bw:np.ndarray, h_scale_factor: int=30, blocksize
     Returns
     -------
     tuple[
-    horizontal: np.ndarray(2D)
+    horizontal: np.ndarray
         The horizontal portions of the image, eroded, dilated, and then smoothed in order to increase contrast and resolution of the edges for follow-on Canny edge detection
     h_scale_factor: int
         An integer with which to scale (or bin) the processing of the horizontal data. 30 works well for higher resolution images for the MCP sensor; however, images taken farther from the sensor (lower resolution) will
@@ -161,7 +161,7 @@ def vert_image_processing(bw:np.ndarray, h_scale_factor: int=30, blocksize: int=
 
     Parameters
     ----------
-    bw: np.ndarray (2D)
+    bw: np.ndarray 
         A uint8-type ndarray compatible with OpenCV image processing techniques used to increase contrast and resolution 
     h_scale_factor: int
         An integer with which to scale (or bin) the processing of the horizontal data. 30 works well for higher resolution images for the MCP sensor; however, images taken farther from the sensor (lower resolution) will
@@ -181,7 +181,7 @@ def vert_image_processing(bw:np.ndarray, h_scale_factor: int=30, blocksize: int=
     Returns
     -------
     tuple[ 
-    vertical: np.ndarray(2D)
+    vertical: np.ndarray
         The vertical portions of the image, eroded, dilated, and then smoothed in order to increase contrast and resolution of the edges for follow-on Canny edge detection 
     h_scale_factor: int
         An integer with which to scale (or bin) the processing of the horizontal data. 30 works well for higher resolution images for the MCP sensor; however, images taken farther from the sensor (lower resolution) will
@@ -229,9 +229,9 @@ def image_recombine(horizontal: np.ndarray, vertical: np.ndarray, alpha: float=.
 
     Parameters
     ----------
-    horizontal: np.ndarray (2D)
+    horizontal: np.ndarray 
         The horizontal portion of the parent image post-processing
-    vertical: np.ndarray (2D)
+    vertical: np.ndarray 
         The vertical portion of the parent image post-processing
     alpha: float
         Value between 0 and 1; the weighting of the horizontal portion of the image (defaults to .5)
@@ -240,7 +240,7 @@ def image_recombine(horizontal: np.ndarray, vertical: np.ndarray, alpha: float=.
     
     Returns
     -------
-    recombined_image: np.ndarray (2D)
+    recombined_image: np.ndarray 
         Agglomerated 2D array representing the weighted values of the horizontal image with the vertical image weight superimposed 
     """
     recombined_image = cv.addWeighted(horizontal, alpha, vertical, beta, 0.0)
@@ -254,7 +254,7 @@ def Canny_edges (recombined_image: np.ndarray, x1: int=110,y1: int=100, width1: 
 
     Parameters
     ----------
-    recombined_image: np.ndarray (2D)
+    recombined_image: np.ndarray 
         Agglomerated 2D array representing the weighted values of the horizontal image with the vertical image weight superimposed 
     x1: int
         The left-most horizontal position for the desired region of interest
@@ -273,7 +273,7 @@ def Canny_edges (recombined_image: np.ndarray, x1: int=110,y1: int=100, width1: 
     Returns
     -------
     tuple [
-    edges: np.ndarray (2D)
+    edges: np.ndarray 
         All identified edges in the desired region of interest highlighted and stores in 2D numpy array with spans for regions of interest
     x1: int
         The left-most horizontal position for the desired region of interest
@@ -296,7 +296,7 @@ def exp_edge_loc (edges: np.ndarray, x1: int, y1: int) -> np.ndarray:
 
     Parameters
     ----------
-    edges: np.ndarray (2D)
+    edges: np.ndarray 
         All identified edges with regions of interest highlighted and stores in 2D numpy array with spans for regions of interest
     x1: int
         The left-most horizontal position for the desired region of interest
@@ -305,7 +305,7 @@ def exp_edge_loc (edges: np.ndarray, x1: int, y1: int) -> np.ndarray:
 
     Returns
     ------
-    edge_locations: np.ndarray (2D)
+    edge_locations: np.ndarray 
         A 2D array containing the locations of the edges in the parent image for processing of the resolution function on the parent 
         image 
     """ 
@@ -323,7 +323,7 @@ def ROI_zones (edge_locations: np.ndarray, x1: int, y1: int, left_range: int, ri
 
     Parameters
     ----------
-    edge_locations: np.ndarray (2D)
+    edge_locations: np.ndarray 
         A 2D array containing the locations of the edges in the parent image for processing of the resolution function on the parent 
         image
     x1: int
@@ -338,7 +338,7 @@ def ROI_zones (edge_locations: np.ndarray, x1: int, y1: int, left_range: int, ri
     Returns
     -------
     tuple [
-    zones: np.ndarray (2D)
+    zones: np.ndarray 
             Saves a 2D array with the zones as a series of boxes that have a single y value and x values that span from left to right lateral limits 
     y1: int
         The uppermost (closest to the origin--image is plotted in 3rd quadrant as abs (x,y)) vertical position for the desired region of interest 
@@ -357,7 +357,7 @@ def ROI_zones (edge_locations: np.ndarray, x1: int, y1: int, left_range: int, ri
     zones = np.array(zones)
     return(zones, y1, left_lat_lim, right_lat_lim)
 
-def run_fit (zones: np.ndarray, y1: int, left_lat_lim: int, right_lat_lim: int, data_path:str)->Tuple[float, float]:
+def run_fit (zones: np.ndarray, y1: int, left_lat_lim: int, right_lat_lim: int, data_path:str)->Tuple[float, float, float, int]:
     """
     Runs each zone through the process of establishing edge spread function, differentiating it, and then comparing fit based on 3 classical curve fitment models
     to develop best fit and outputs image spatial resolution. 
@@ -383,11 +383,17 @@ def run_fit (zones: np.ndarray, y1: int, left_lat_lim: int, right_lat_lim: int, 
     Returns
     -------
     tuple [
-    average_fwhm: int
+    average_fwhm: float
         The average value of the full-width, half-maximums for the agglomerated curve-fits for all runs with a R^2 value of >.9. Value is in units of pixels (px).
-    spatial_resolution: int
+    spatial_resolution: float
         The fwhm value for all runs calculated from pixel value to spatial resolution (mm) using a sensor stated maximum theoretical resolution of .055mm.
+    std_dev_FWHM: float
+        The standard deviation value for the entirety of the FWHM values in the set.
+    sample_size: int
+        The size of the FHWM data-set. 
+
         ]
+
         
     """
     image=imageio.imread(data_path)
@@ -447,6 +453,7 @@ def run_fit (zones: np.ndarray, y1: int, left_lat_lim: int, right_lat_lim: int, 
     if fwhm_values:
         average_fwhm = sum(fwhm_values)/len(fwhm_values)
     spatial_resolution = .055 *average_fwhm 
-    print ("The sample size of the calculation was", (len(results_dict)),",using data with R^2 value in excess of .9.")
-    print (f"The average resolution across the ROI is {average_fwhm:.8f} pixels, or {spatial_resolution:.8f} mm. Data-set standard deviation was {std_dev_FWHM:.8f}.")
-    return (average_fwhm, spatial_resolution)
+    sample_size = (len(results_dict))
+    #print ("The sample size of the calculation was", (len(results_dict)),",using data with R^2 value in excess of .9.")
+    #print (f"The average resolution across the ROI is {average_fwhm:.8f} pixels, or {spatial_resolution:.8f} mm. Data-set standard deviation was {std_dev_FWHM:.8f}.")
+    return average_fwhm, spatial_resolution, std_dev_FWHM, sample_size

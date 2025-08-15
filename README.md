@@ -1,4 +1,7 @@
 # MCP_Sensor_Resolution
+
+> As of Aug 15, 2025, the development of the project is shifted to https://code.ornl.gov/ornlneutronimaging/BraggSR.
+
 This repository allows the determination of the resolution of radiographs produced by the MCP sensor for VENUS (BL-10). 
 It uses radiographs normalized using the Normalization_TOF program. 
 The program "Resolution" functions by using image processing to increase contrast and employs Canny edge detection to find and catalog all edges in the horizontal and vertical planes. 
